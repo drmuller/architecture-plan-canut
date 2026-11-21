@@ -1,8 +1,8 @@
-import {createFurnitureMaterials,furnitureBuilder,isolateFurnitureMaterials,applyFurnitureColours} from './furniture-models.js?v=618df2bcbaf7';
-import {nextSurfaceSelection,rememberColour,selectionGeometry} from './surface-editor.js?v=618df2bcbaf7';
-import {configureTiles} from './surface-materials.js?v=618df2bcbaf7';
-import {createWalkthrough,buildWalkPoints} from './walkthrough.js?v=618df2bcbaf7';
-import {DESIGN_FORMAT,MAX_DESIGN_BYTES,validateDesign,designFingerprint,resolveDesignTexture} from './design-format.js?v=618df2bcbaf7';
+import {createFurnitureMaterials,furnitureBuilder,isolateFurnitureMaterials,applyFurnitureColours} from './furniture-models.js?v=c801201f9953';
+import {nextSurfaceSelection,rememberColour,selectionGeometry} from './surface-editor.js?v=c801201f9953';
+import {configureTiles} from './surface-materials.js?v=c801201f9953';
+import {createWalkthrough,buildWalkPoints} from './walkthrough.js?v=c801201f9953';
+import {DESIGN_FORMAT,MAX_DESIGN_BYTES,validateDesign,designFingerprint,resolveDesignTexture} from './design-format.js?v=c801201f9953';
 import * as THREE from 'three';
 import {OrbitControls} from './vendor/OrbitControls.js';
 const $=id=>document.getElementById(id), wrap=$('canvas-wrap');
@@ -165,7 +165,8 @@ makeCeilings();
 for(let i=0;i<5;i++){const x=X(1135)+.3135+i*.627;box(furn,x,.10,.37,.612,.78,.62,mats.joinery);box(furn,x,1.55,.25,.612,.65,.42,white);box(furn,x,.50,.697,.48,.012,.01,dark)}
 const worktopThickness=.005;
 box(furn,X(1135)+3.135/2,.88,.37,3.135,worktopThickness,.66,mats.countertop);
-box(furn,12.9,.12,Z(460),1.77,.77,.84,mats.joinery);box(furn,12.9,.89,Z(460),1.82,worktopThickness,.9,mats.countertop);
+box(furn,12.9,.12,Z(460),1.77,.77,.84,mats.joinery);// Island worktop: 3 cm lip on the kitchen side, 20 cm overhang over the stools.
+box(furn,12.9,.89,Z(460)+(.20-.03)/2,1.82,worktopThickness,.84+.03+.20,mats.countertop);
 box(furn,11.76,.885,.36,.62,.015,.43,metal);box(furn,11.76,.897,.36,.52,.01,.34,dark);cyl(furn,11.76,.90,.16,.018,.24,metal);box(furn,11.76,1.12,.23,.035,.035,.16,metal);box(furn,13.0,.885,.36,.58,.018,.49,dark);for(const dx of[-.16,.16])for(const dz of[-.13,.13])cyl(furn,13+dx,.904,.36+dz,.09,.008,metal);
 // Built-in furniture is separate from the plaster partitions, with its own
 // carcass, doors and shelves, fitted flush to the walls and box ceiling.
