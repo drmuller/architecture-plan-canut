@@ -76,3 +76,14 @@ Select furniture in **Furniture** or click it in walkthrough. Choose **Wood & fr
 ## Kitchen counter stools
 
 Three counter stools stand on the living-room side of the kitchen peninsula, whose worktop overhangs that side by 20 cm so the seats tuck under it. They follow the supplied product sheet: 88 cm overall height, 67 cm seat height with a 3 cm cushion, 43.5 × 41 cm seat, 40 × 20 cm backrest, 48 × 51 cm leg footprint and footrest at 19.5 cm. They have a sage-green metal frame, rust seat and mustard velvet backrest. Each stool can be moved like other furniture. Its **Metal frame**, **Upholstery / fabric** and **Backrest** colours can be changed separately. Older local drafts, JSON exports and shared designs still load; stools missing from them appear in their default place.
+
+
+## Navigating the 3D model
+
+- **Zoom at the cursor:** the scroll wheel or trackpad pinch zooms toward the point under the pointer, not the screen centre.
+- **Double-click / double-tap** any point to fly there and orbit around it.
+- **Go to room…** in the view bar jumps to a close 3/4 view of each room.
+- **Panning** (right-drag, two fingers, or WASD/arrow keys) slides across the floor. It stops at the apartment's edges, so the model can't be lost. Q/E turn the view; Home resets it.
+- **Click or tap furniture** to select it without opening a panel first. A floating toolbar offers Move (drag mode), rotate ±15°, Colours and deselect.
+- On phones, the 3D view takes most of the screen. The headline is hidden, controls are larger and the help text is adapted to touch.
+- **Reset all finishes** is now at the bottom of Materials and asks for confirmation before resetting colours.
