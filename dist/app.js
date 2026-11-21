@@ -1,8 +1,8 @@
-import {createFurnitureMaterials,furnitureBuilder,isolateFurnitureMaterials,applyFurnitureColours} from './furniture-models.js?v=e27026fc65f2';
-import {nextSurfaceSelection,rememberColour,selectionGeometry} from './surface-editor.js?v=e27026fc65f2';
-import {configureTiles} from './surface-materials.js?v=e27026fc65f2';
-import {createWalkthrough,buildWalkPoints} from './walkthrough.js?v=e27026fc65f2';
-import {DESIGN_FORMAT,MAX_DESIGN_BYTES,validateDesign,designFingerprint,resolveDesignTexture} from './design-format.js?v=e27026fc65f2';
+import {createFurnitureMaterials,furnitureBuilder,isolateFurnitureMaterials,applyFurnitureColours} from './furniture-models.js?v=618df2bcbaf7';
+import {nextSurfaceSelection,rememberColour,selectionGeometry} from './surface-editor.js?v=618df2bcbaf7';
+import {configureTiles} from './surface-materials.js?v=618df2bcbaf7';
+import {createWalkthrough,buildWalkPoints} from './walkthrough.js?v=618df2bcbaf7';
+import {DESIGN_FORMAT,MAX_DESIGN_BYTES,validateDesign,designFingerprint,resolveDesignTexture} from './design-format.js?v=618df2bcbaf7';
 import * as THREE from 'three';
 import {OrbitControls} from './vendor/OrbitControls.js';
 const $=id=>document.getElementById(id), wrap=$('canvas-wrap');
@@ -200,6 +200,8 @@ for(const [i,z]of[Z(722),Z(795),Z(868)].entries()){chair(11.88,z,Math.PI/2,'chai
 registerFurniture(placeFurniture(detailedFurniture.coffee(),furn,10.07,Z(875)),'coffee-table','Coffee table');
 registerFurniture(sofa(furn,10.85,Z(746),.82,Math.atan2(10.07-10.85,Z(875)-Z(746))),'armchair-north','Armchair · kitchen side');registerFurniture(sofa(furn,10.85,Z(968),.82,Math.atan2(10.07-10.85,Z(875)-Z(968))),'armchair-south','Armchair · window side');
 registerFurniture(placeFurniture(detailedFurniture.table(1.15,.60,.73),furn,6.45,Z(1023)),'desk','Office · desk');chair(6.45,Z(982),0,'desk-chair','Office · desk chair');
+// Three counter stools on the living-room side of the kitchen peninsula.
+for(const [i,dx] of [-.58,0,.58].entries())registerFurniture(placeFurniture(detailedFurniture.stool(),furn,12.9+dx,Z(460)+.70,Math.PI),'stool-'+i,'Kitchen · counter stool '+(i+1));
 // Bathroom fittings traced from the plan: ML cupboard NW, basin SW, bath east.
 // Fixed plumbing keeps existing saved movable-furniture layouts compatible.
 const bathroom=new THREE.Group();bathroom.name='SDB · fixed fittings';furn.add(bathroom);
@@ -311,7 +313,7 @@ function rememberLayout(snapshot=layoutSnapshot()){layoutHistory.push(snapshot);
 function showLayoutPanel(){document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab==='layout'));document.querySelectorAll('.tab-panel').forEach(p=>p.hidden=p.id!=='layout');}
 function setArranging(enabled){if(enabled&&typeof pickingSurface!=='undefined')setSurfacePicking(false);if(enabled&&walkthrough?.active)walkthrough.exit();arranging=enabled;$('arrange-toggle').setAttribute('aria-pressed',String(enabled));$('arrange-toggle').textContent=enabled?'✓ Arranging furniture':'↔ Arrange furniture';renderer.domElement.style.cursor=enabled?'grab':'';if(enabled){furn.visible=true;$('furniture').checked=true;showLayoutPanel();}else selectFurniture(null);}
 function syncObjectFields(){if(!selectedFurniture)return;const o=selectedFurniture;$('object-x').value=o.position.x.toFixed(2);$('object-z').value=o.position.z.toFixed(2);const deg=normalizedAngle(o.rotation.y);$('object-angle').value=Math.round(deg);$('object-angle-value').value=Math.round(deg)+'°';}
-const furniturePartLabels={wood:'Wood & frame',upholstery:'Upholstery / fabric',bedding:'Bedding / scatter cushions'};
+const furniturePartLabels={wood:'Wood & frame',upholstery:'Upholstery / fabric',bedding:'Bedding / scatter cushions',frame:'Metal frame',backrest:'Backrest'};
 function furnitureColourUI(rebuild=false){if(!selectedFurniture)return;const id=selectedFurniture.userData.furniture.id,parts=furnitureParts.get(id),menu=$('furniture-part');if(rebuild||!parts[menu.value]){menu.replaceChildren();for(const key of Object.keys(parts)){const option=document.createElement('option');option.value=key;option.textContent=furniturePartLabels[key];menu.append(option);}if(parts.upholstery)menu.value='upholstery';}
 const part=menu.value;$('furniture-colour').value=furnitureColours[id]?.[part]||'#'+parts[part][0].original.getHexString();$('furniture-colour-value').textContent=$('furniture-colour').value;$('furniture-colour-reset').disabled=!furnitureColours[id];}
 function setFurnitureColour(colour,remember=true){if(!selectedFurniture)return;const id=selectedFurniture.userData.furniture.id,part=$('furniture-part').value;(furnitureColours[id]??={})[part]=colour;applyFurnitureColours(furnitureParts.get(id),furnitureColours[id]);if(remember)saveRecentColour(colour);furnitureColourUI();queueDesignSave();}
@@ -383,7 +385,7 @@ window.addEventListener('keydown',event=>{if(/INPUT|SELECT|TEXTAREA/.test(docume
 
 // Complete local recovery and portable design export/import.
 let designReady=false,applyingDesign=false,designSaveTimer=null,designEpoch=0,previousImportedDesign=null;
-const designSpec={surfaces:Object.keys(defaults),surfaceDefaults:Object.fromEntries(Object.keys(surfaceMeta).map(key=>[key,defaults[key]])),surfaceParents,finishes:catalog.map(f=>f.id),furnitureIds:movableObjects.map(o=>o.userData.furniture.id)};
+const designSpec={surfaces:Object.keys(defaults),surfaceDefaults:Object.fromEntries(Object.keys(surfaceMeta).map(key=>[key,defaults[key]])),surfaceParents,finishes:catalog.map(f=>f.id),furnitureIds:movableObjects.map(o=>o.userData.furniture.id),furnitureDefaults:Object.fromEntries(movableObjects.map(o=>[o.userData.furniture.id,{...o.userData.furniture.original}]))};
 const designStorage=new Promise((resolve,reject)=>{try{const request=indexedDB.open('ivry-designs',1);request.onupgradeneeded=()=>request.result.createObjectStore('designs');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);request.onblocked=()=>reject(new Error('Close older editor tabs and try saving again.'));}catch(error){reject(error)}});
 designStorage.catch(()=>{});
 async function designStore(mode,key,value){const db=await designStorage;return new Promise((resolve,reject)=>{const tx=db.transaction('designs',mode),store=tx.objectStore('designs');let result;const req=mode==='readwrite'?store.put(value,key):store.get(key);req.onsuccess=()=>result=req.result;tx.oncomplete=()=>resolve(result);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Save was interrupted'));});}

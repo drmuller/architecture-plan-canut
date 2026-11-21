@@ -56137,11 +56137,13 @@ const materials={},textures={};
 for(const key of spec.surfaces){const missing=input.materials[key]===undefined;const parent=spec.surfaceParents?.[key];const m=missing?(parent?input.materials[parent]:spec.surfaceDefaults?.[key]):input.materials[key];if(!record(m)||!spec.finishes.includes(m.finish)||!/^#[0-9a-f]{6}$/i.test(m.tint))bad('Invalid finish for '+key);materials[key]={finish:m.finish,tint:m.tint,roughness:number(m.roughness,.1,1,'roughness'),scale:number(m.scale,.25,4,'texture scale')};
 const texture=input.textures[key]??(missing&&parent&&input.textures[parent]!==undefined?'@'+parent:undefined);if(texture!==undefined){const data=texture;if(typeof data!=='string'||data.length>1500000||(!/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(data)&&!(data.startsWith('@')&&spec.surfaces.includes(data.slice(1)))))bad('Invalid texture for '+key);textures[key]=data;}}
 for(const key of Object.keys(textures))resolveDesignTexture(textures,key);
-const ids=new Set(spec.furnitureIds);if(!Array.isArray(input.furniture)||input.furniture.length!==ids.size)bad('The furniture list does not match this apartment.');
+const ids=new Set(spec.furnitureIds);if(!Array.isArray(input.furniture))bad('The furniture list does not match this apartment.');
 const furniture=input.furniture.map(item=>{if(!record(item)||!ids.delete(item.id))bad('Unknown or duplicate furniture item');return{id:item.id,x:number(item.x,-2,16,'furniture X'),z:number(item.z,-2,11,'furniture Y'),angle:number(item.angle,-100*Math.PI,100*Math.PI,'rotation')};});
+// Pieces added after a design was saved take their original position.
+for(const id of ids){const d=spec.furnitureDefaults?.[id];if(!d)bad('The furniture list does not match this apartment.');furniture.push({id,x:d.x,z:d.z,angle:d.angle});}
 const ceilings={box:number(input.ceilings.box,2.4,3.4,'box ceiling'),main:number(input.ceilings.main,3.5,4.5,'main ceiling')};
 const result={format:DESIGN_FORMAT,version:1,units:'metres',materials,textures,furniture,ceilings};
-if(input.furnitureColours!==undefined){if(!record(input.furnitureColours))bad('Invalid furniture colours');const colours={};for(const [id,parts] of Object.entries(input.furnitureColours)){if(!spec.furnitureIds.includes(id)||!record(parts))bad('Unknown furniture colour target');colours[id]={};for(const [part,colour] of Object.entries(parts)){if(!['wood','upholstery','bedding'].includes(part)||typeof colour!=='string'||!/^#[0-9a-f]{6}$/i.test(colour))bad('Invalid furniture colour');colours[id][part]=colour;}}result.furnitureColours=colours;}
+if(input.furnitureColours!==undefined){if(!record(input.furnitureColours))bad('Invalid furniture colours');const colours={};for(const [id,parts] of Object.entries(input.furnitureColours)){if(!spec.furnitureIds.includes(id)||!record(parts))bad('Unknown furniture colour target');colours[id]={};for(const [part,colour] of Object.entries(parts)){if(!['wood','upholstery','bedding','frame','backrest'].includes(part)||typeof colour!=='string'||!/^#[0-9a-f]{6}$/i.test(colour))bad('Invalid furniture colour');colours[id][part]=colour;}}result.furnitureColours=colours;}
 if(input.recentColours!==undefined){if(!Array.isArray(input.recentColours)||input.recentColours.length>12||input.recentColours.some(c=>typeof c!=='string'||!/^#[0-9a-f]{6}$/i.test(c)))bad('Invalid saved colour palette');result.recentColours=[...new Set(input.recentColours.map(c=>c.toLowerCase()))];}
 if(JSON.stringify(result).length>MAX_DESIGN_BYTES)bad('This design is too large (maximum 8 MB).');
 return result;
@@ -56235,7 +56237,25 @@ function furnitureBuilder(materials){
  }
  function coffee(){const g=new THREE.Group();mesh(g,new THREE.CylinderGeometry(.40,.395,.035,64),materials.wood,[0,.4475,0],'wood');mesh(g,new THREE.CylinderGeometry(.38,.39,.012,64),materials.wood,[0,.424,0],'wood');for(let i=0;i<3;i++){const a=i*Math.PI*2/3;rod(g,[Math.sin(a)*.28,.01,Math.cos(a)*.28],[Math.sin(a)*.18,.42,Math.cos(a)*.18],.019,.032);}return g;}
  function wardrobe(w,d){const g=new THREE.Group();soft(g,0,.08,0,w,2.6,d,materials.wood,'wood',.012);const count=Math.max(2,Math.round(w/.5));for(let i=0;i<count;i++){const x=-w/2+(i+.5)*w/count;soft(g,x,.10,d/2+.007,w/count-.007,2.56,.018,materials.wood,'wood',.006);rod(g,[x+w/count/2-.055,1.05,d/2+.035],[x+w/count/2-.055,1.23,d/2+.035],.006,.006,materials.metal,null);}soft(g,0,.01,0,w-.09,.075,d-.06,materials.metal,null,.01);return g;}
- return {sofa,chair,bed,table,coffee,wardrobe};
+ // Counter stool after the supplied product sheet: 88 cm tall, 67 cm seat, 3 cm cushion,
+ // 20 x 40 cm backrest, 48 x 51 cm leg footprint and footrest ring at 19.5 cm.
+ function stool(){const g=new THREE.Group(),frame=materials.metal.clone(),seat=materials.cloth.clone(),velvet=materials.cloth.clone(),glide=materials.metal.clone();
+ frame.color.set('#7f977c');frame.metalness=.25;frame.roughness=.55;seat.color.set('#a8583a');velvet.color.set('#b8893a');velvet.roughness=.72;velvet.bumpScale=.002;glide.color.set('#1d1f1c');glide.metalness=0;glide.roughness=.8;
+ const tube=(a,b)=>rod(g,a,b,.009,.009,frame,'frame'),joint=p=>mesh(g,new THREE.SphereGeometry(.009,12,8),frame,p,'frame');
+ const top=[[-.19,.615,-.165],[.19,.615,-.165],[-.19,.615,.175],[.19,.615,.175]],foot=[[-.23,.012,-.245],[.23,.012,-.245],[-.23,.012,.245],[.23,.012,.245]];
+ const at=(i,y)=>{const t=(y-foot[i][1])/(top[i][1]-foot[i][1]);return foot[i].map((v,k)=>k===1?y:v+(top[i][k]-v)*t);};
+ for(let i=0;i<4;i++){tube(foot[i],top[i]);mesh(g,new THREE.CylinderGeometry(.011,.012,.012,12),glide,[foot[i][0],.006,foot[i][2]],null);}
+ // Seat frame and footrest ring.
+ for(const [a,b] of [[0,1],[2,3],[0,2],[1,3]]){tube(top[a],top[b]);tube(at(a,.195),at(b,.195));}
+ for(const p of top)joint(p);
+ soft(g,0,.615,.005,.42,.013,.40,frame,'frame',.006);
+ soft(g,0,.628,.005,.435,.042,.41,seat,'upholstery',.02);
+ // Rear posts loop forward into armrests and back down to the seat rail.
+ for(const x of [-.212,.212]){const post=[x,.615,-.175],high=[x,.80,-.215],front=[x,.80,.025],down=[x,.628,.075];tube(post,high);tube(high,front);tube(front,down);for(const p of [high,front,down])joint(p);}
+ const back=soft(g,0,.68,-.225,.40,.20,.045,velvet,'backrest',.018);back.rotation.x=-.06;
+ return g;
+ }
+ return {sofa,chair,bed,table,coffee,wardrobe,stool};
 }
 // Each editable part gets private material instances; adjacent chairs never share tint.
 function isolateFurnitureMaterials(object){const clones=new Map(),parts={};object.traverse(mesh=>{const part=mesh.userData.furniturePart;if(!mesh.isMesh||!part)return;const key=part+':'+mesh.material.uuid;if(!clones.has(key)){const m=mesh.material.clone();clones.set(key,m);(parts[part]??=[]).push({material:m,original:m.color.clone()});}mesh.material=clones.get(key);});return parts;}
@@ -56499,6 +56519,8 @@ for(const [i,z]of[Z(722),Z(795),Z(868)].entries()){chair(11.88,z,Math.PI/2,'chai
 registerFurniture(placeFurniture(detailedFurniture.coffee(),furn,10.07,Z(875)),'coffee-table','Coffee table');
 registerFurniture(sofa(furn,10.85,Z(746),.82,Math.atan2(10.07-10.85,Z(875)-Z(746))),'armchair-north','Armchair · kitchen side');registerFurniture(sofa(furn,10.85,Z(968),.82,Math.atan2(10.07-10.85,Z(875)-Z(968))),'armchair-south','Armchair · window side');
 registerFurniture(placeFurniture(detailedFurniture.table(1.15,.60,.73),furn,6.45,Z(1023)),'desk','Office · desk');chair(6.45,Z(982),0,'desk-chair','Office · desk chair');
+// Three counter stools on the living-room side of the kitchen peninsula.
+for(const [i,dx] of [-.58,0,.58].entries())registerFurniture(placeFurniture(detailedFurniture.stool(),furn,12.9+dx,Z(460)+.70,Math.PI),'stool-'+i,'Kitchen · counter stool '+(i+1));
 // Bathroom fittings traced from the plan: ML cupboard NW, basin SW, bath east.
 // Fixed plumbing keeps existing saved movable-furniture layouts compatible.
 const bathroom=new THREE.Group();bathroom.name='SDB · fixed fittings';furn.add(bathroom);
@@ -56610,7 +56632,7 @@ function rememberLayout(snapshot=layoutSnapshot()){layoutHistory.push(snapshot);
 function showLayoutPanel(){document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab==='layout'));document.querySelectorAll('.tab-panel').forEach(p=>p.hidden=p.id!=='layout');}
 function setArranging(enabled){if(enabled&&typeof pickingSurface!=='undefined')setSurfacePicking(false);if(enabled&&walkthrough?.active)walkthrough.exit();arranging=enabled;$('arrange-toggle').setAttribute('aria-pressed',String(enabled));$('arrange-toggle').textContent=enabled?'✓ Arranging furniture':'↔ Arrange furniture';renderer.domElement.style.cursor=enabled?'grab':'';if(enabled){furn.visible=true;$('furniture').checked=true;showLayoutPanel();}else selectFurniture(null);}
 function syncObjectFields(){if(!selectedFurniture)return;const o=selectedFurniture;$('object-x').value=o.position.x.toFixed(2);$('object-z').value=o.position.z.toFixed(2);const deg=normalizedAngle(o.rotation.y);$('object-angle').value=Math.round(deg);$('object-angle-value').value=Math.round(deg)+'°';}
-const furniturePartLabels={wood:'Wood & frame',upholstery:'Upholstery / fabric',bedding:'Bedding / scatter cushions'};
+const furniturePartLabels={wood:'Wood & frame',upholstery:'Upholstery / fabric',bedding:'Bedding / scatter cushions',frame:'Metal frame',backrest:'Backrest'};
 function furnitureColourUI(rebuild=false){if(!selectedFurniture)return;const id=selectedFurniture.userData.furniture.id,parts=furnitureParts.get(id),menu=$('furniture-part');if(rebuild||!parts[menu.value]){menu.replaceChildren();for(const key of Object.keys(parts)){const option=document.createElement('option');option.value=key;option.textContent=furniturePartLabels[key];menu.append(option);}if(parts.upholstery)menu.value='upholstery';}
 const part=menu.value;$('furniture-colour').value=furnitureColours[id]?.[part]||'#'+parts[part][0].original.getHexString();$('furniture-colour-value').textContent=$('furniture-colour').value;$('furniture-colour-reset').disabled=!furnitureColours[id];}
 function setFurnitureColour(colour,remember=true){if(!selectedFurniture)return;const id=selectedFurniture.userData.furniture.id,part=$('furniture-part').value;(furnitureColours[id]??={})[part]=colour;applyFurnitureColours(furnitureParts.get(id),furnitureColours[id]);if(remember)saveRecentColour(colour);furnitureColourUI();queueDesignSave();}
@@ -56682,7 +56704,7 @@ window.addEventListener('keydown',event=>{if(/INPUT|SELECT|TEXTAREA/.test(docume
 
 // Complete local recovery and portable design export/import.
 let designReady=false,applyingDesign=false,designSaveTimer=null,designEpoch=0,previousImportedDesign=null;
-const designSpec={surfaces:Object.keys(defaults),surfaceDefaults:Object.fromEntries(Object.keys(surfaceMeta).map(key=>[key,defaults[key]])),surfaceParents,finishes:catalog.map(f=>f.id),furnitureIds:movableObjects.map(o=>o.userData.furniture.id)};
+const designSpec={surfaces:Object.keys(defaults),surfaceDefaults:Object.fromEntries(Object.keys(surfaceMeta).map(key=>[key,defaults[key]])),surfaceParents,finishes:catalog.map(f=>f.id),furnitureIds:movableObjects.map(o=>o.userData.furniture.id),furnitureDefaults:Object.fromEntries(movableObjects.map(o=>[o.userData.furniture.id,{...o.userData.furniture.original}]))};
 const designStorage=new Promise((resolve,reject)=>{try{const request=indexedDB.open('ivry-designs',1);request.onupgradeneeded=()=>request.result.createObjectStore('designs');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);request.onblocked=()=>reject(new Error('Close older editor tabs and try saving again.'));}catch(error){reject(error)}});
 designStorage.catch(()=>{});
 async function designStore(mode,key,value){const db=await designStorage;return new Promise((resolve,reject)=>{const tx=db.transaction('designs',mode),store=tx.objectStore('designs');let result;const req=mode==='readwrite'?store.put(value,key):store.get(key);req.onsuccess=()=>result=req.result;tx.oncomplete=()=>resolve(result);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Save was interrupted'));});}

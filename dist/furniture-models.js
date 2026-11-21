@@ -48,7 +48,25 @@ export function furnitureBuilder(materials){
  }
  function coffee(){const g=new THREE.Group();mesh(g,new THREE.CylinderGeometry(.40,.395,.035,64),materials.wood,[0,.4475,0],'wood');mesh(g,new THREE.CylinderGeometry(.38,.39,.012,64),materials.wood,[0,.424,0],'wood');for(let i=0;i<3;i++){const a=i*Math.PI*2/3;rod(g,[Math.sin(a)*.28,.01,Math.cos(a)*.28],[Math.sin(a)*.18,.42,Math.cos(a)*.18],.019,.032);}return g;}
  function wardrobe(w,d){const g=new THREE.Group();soft(g,0,.08,0,w,2.6,d,materials.wood,'wood',.012);const count=Math.max(2,Math.round(w/.5));for(let i=0;i<count;i++){const x=-w/2+(i+.5)*w/count;soft(g,x,.10,d/2+.007,w/count-.007,2.56,.018,materials.wood,'wood',.006);rod(g,[x+w/count/2-.055,1.05,d/2+.035],[x+w/count/2-.055,1.23,d/2+.035],.006,.006,materials.metal,null);}soft(g,0,.01,0,w-.09,.075,d-.06,materials.metal,null,.01);return g;}
- return {sofa,chair,bed,table,coffee,wardrobe};
+ // Counter stool after the supplied product sheet: 88 cm tall, 67 cm seat, 3 cm cushion,
+ // 20 x 40 cm backrest, 48 x 51 cm leg footprint and footrest ring at 19.5 cm.
+ function stool(){const g=new THREE.Group(),frame=materials.metal.clone(),seat=materials.cloth.clone(),velvet=materials.cloth.clone(),glide=materials.metal.clone();
+ frame.color.set('#7f977c');frame.metalness=.25;frame.roughness=.55;seat.color.set('#a8583a');velvet.color.set('#b8893a');velvet.roughness=.72;velvet.bumpScale=.002;glide.color.set('#1d1f1c');glide.metalness=0;glide.roughness=.8;
+ const tube=(a,b)=>rod(g,a,b,.009,.009,frame,'frame'),joint=p=>mesh(g,new THREE.SphereGeometry(.009,12,8),frame,p,'frame');
+ const top=[[-.19,.615,-.165],[.19,.615,-.165],[-.19,.615,.175],[.19,.615,.175]],foot=[[-.23,.012,-.245],[.23,.012,-.245],[-.23,.012,.245],[.23,.012,.245]];
+ const at=(i,y)=>{const t=(y-foot[i][1])/(top[i][1]-foot[i][1]);return foot[i].map((v,k)=>k===1?y:v+(top[i][k]-v)*t);};
+ for(let i=0;i<4;i++){tube(foot[i],top[i]);mesh(g,new THREE.CylinderGeometry(.011,.012,.012,12),glide,[foot[i][0],.006,foot[i][2]],null);}
+ // Seat frame and footrest ring.
+ for(const [a,b] of [[0,1],[2,3],[0,2],[1,3]]){tube(top[a],top[b]);tube(at(a,.195),at(b,.195));}
+ for(const p of top)joint(p);
+ soft(g,0,.615,.005,.42,.013,.40,frame,'frame',.006);
+ soft(g,0,.628,.005,.435,.042,.41,seat,'upholstery',.02);
+ // Rear posts loop forward into armrests and back down to the seat rail.
+ for(const x of [-.212,.212]){const post=[x,.615,-.175],high=[x,.80,-.215],front=[x,.80,.025],down=[x,.628,.075];tube(post,high);tube(high,front);tube(front,down);for(const p of [high,front,down])joint(p);}
+ const back=soft(g,0,.68,-.225,.40,.20,.045,velvet,'backrest',.018);back.rotation.x=-.06;
+ return g;
+ }
+ return {sofa,chair,bed,table,coffee,wardrobe,stool};
 }
 // Each editable part gets private material instances; adjacent chairs never share tint.
 export function isolateFurnitureMaterials(object){const clones=new Map(),parts={};object.traverse(mesh=>{const part=mesh.userData.furniturePart;if(!mesh.isMesh||!part)return;const key=part+':'+mesh.material.uuid;if(!clones.has(key)){const m=mesh.material.clone();clones.set(key,m);(parts[part]??=[]).push({material:m,original:m.color.clone()});}mesh.material=clones.get(key);});return parts;}

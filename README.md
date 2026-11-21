@@ -71,3 +71,8 @@ Wall selection also works inside **Walkthrough**: enable **Pick walls or tiled f
 Movable sofas, armchairs, chairs, beds, wardrobes, tables and the desk use rounded edges, padded cushions, timber legs, handles, fabric weave and wood grain. The reconstruction keeps the existing furniture IDs, positions, rotations and nominal sizes; these are illustrative furniture models, not identified manufacturer products.
 
 Select furniture in **Furniture** or click it in walkthrough. Choose **Wood & frame**, **Upholstery / fabric**, or **Bedding / scatter cushions** where available, then use the colour picker, swatches or saved colours. Only the selected piece changes. **Restore colours** restores that piece’s original palette independently of its position. Colour overrides are included in automatic local saves, JSON exports and explicit shared saves. Older designs load with the new default furniture palette. No database migration is required. In walkthrough, arrow keys keep turning the head; Esc deselects furniture before exiting.
+
+
+## Kitchen counter stools
+
+Three counter stools stand on the living-room side of the kitchen peninsula. They follow the supplied product sheet: 88 cm overall height, 67 cm seat height with a 3 cm cushion, 43.5 × 41 cm seat, 40 × 20 cm backrest, 48 × 51 cm leg footprint and footrest at 19.5 cm. They have a sage-green metal frame, rust seat and mustard velvet backrest. Each stool can be moved like other furniture. Its **Metal frame**, **Upholstery / fabric** and **Backrest** colours can be changed separately. Older local drafts, JSON exports and shared designs still load; stools missing from them appear in their default place.
