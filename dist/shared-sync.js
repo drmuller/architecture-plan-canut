@@ -1,4 +1,4 @@
-import {SharedDesignSession} from './shared-session.js?v=e27026fc65f2';
+import {SharedDesignSession} from './shared-session.js?v=c801201f9953';
 function startSharedDesign(){
 const api=window.ivryDesign,$=id=>document.getElementById(id),config=window.IVRY_SHARED_CONFIG||{};
 if(!api||!config.url||!config.publishableKey)return;
