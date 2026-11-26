@@ -4,7 +4,7 @@ import {EffectComposer} from './vendor/addons/EffectComposer.js';
 import {Pass} from './vendor/addons/Pass.js';
 import {GTAOPass} from './vendor/addons/GTAOPass.js';
 import {OutputPass} from './vendor/addons/OutputPass.js';
-import {createSky} from './textures.js?v=ca158c85565f';
+import {createSky} from './textures.js?v=938384afccaa';
 
 // Closed solids live on this layer too; their inner faces are painted as the section fill.
 export const CAP_LAYER=1;

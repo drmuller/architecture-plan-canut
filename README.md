@@ -22,7 +22,7 @@ The page opens on the neighbourhood: terraces of canut buildings on the slopes o
 
 
 
-The model fills the window. A top bar holds the view tools (**Views**, **Walk**, **Cut**, **Display**, **Light**), a side panel holds the editing tabs (**Finishes**, **Furniture**, **Space**, **Plan**), and a camera ball sits at the top right. On phones the panel becomes a bottom sheet: tap a tab to open it, tap it again to close it.
+The model fills the window. A top bar holds the view tools (**Views**, **Walk**, **Cut**, **Display**, **Light**), a side panel holds the editing tabs (**Finishes**, **Furniture**, **Space**, **Plan**), and a camera ball sits at the bottom right. On phones the panel becomes a bottom sheet: tap a tab to open it, tap it again to close it.
 
 - **Click anything to select it.** Furniture and the person show a blue frame, a floating toolbar (turn, edit, put back, deselect) and a round handle. Walls, floors, joinery, worktops and ceilings open their finishes, with quick colours beside the click.
 - **Drag the selected piece** to move it across the floor. Drag the round handle around it to turn it (5° steps; hold Shift for free rotation). **Press and hold** any piece to grab it without selecting it first. Every other drag orbits the camera.
@@ -31,7 +31,7 @@ The model fills the window. A top bar holds the view tools (**Views**, **Walk**,
 
 ### Camera ball
 
-The ball at the top right is a thumbstick: push it and the view keeps orbiting that way, release and it springs back. It also works as a compass. The N, E, S and W markers and the ▲ top marker follow the real camera, and tapping one brings that side to the front (▲ gives a top view). In walkthrough the ball turns your head instead. When it has keyboard focus, the arrow keys steer it.
+The ball at the bottom right is a thumbstick: push it and the view keeps orbiting that way, release and it springs back. It also works as a compass. The N, E, S and W markers and the ▲ top marker follow the real camera, and tapping one brings that side to the front (▲ gives a top view). In walkthrough the ball turns your head instead. When it has keyboard focus, the arrow keys steer it.
 
 ### Section cut
 
@@ -45,7 +45,7 @@ The ball at the top right is a thumbstick: push it and the view keeps orbiting t
 
 The sun stands where it really is over the building. **Light** follows the current date and time in Lyon by default (**Now**), or shows any moment you choose: a time slider, a date field with solstice and equinox shortcuts, and Morning, Midday, Golden hour and Evening, which are worked out from that day's sunrise and sunset. The menu states sunrise, sunset and where the sun is. Daylight enters through the real window openings; after sunset the sky darkens and the pendants and floor lamp come on.
 
-The position used is the neighbourhood's, rounded to two decimals, which is ample for the sun. The street façade is taken to face 172° (just east of due south), read from the building on the map; **Light → Orientation** adjusts it, and the camera ball's compass follows. `?date=2026-06-21&time=15:30` in the address pins a moment.
+The sun is worked out for the apartment's own coordinates, set as `SITE` in `dist/building-intro.js`. The street façade is taken to face 172° (just east of due south), read from the building on the map; **Light → Orientation** adjusts it, and the camera ball's compass follows. `?date=2026-06-21&time=15:30` in the address pins a moment.
 
 **Realistic** rendering adds ambient occlusion, finer shadows and multisampling; **Fast** is lighter and is the default on touch devices. If frames stay slow the app first skips occlusion while moving, then switches to Fast. `?quality=high|standard` forces a setting.
 

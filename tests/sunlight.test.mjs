@@ -5,8 +5,8 @@ import {compassDirections} from '../dist/view-joystick.js';
 import {SITE} from '../dist/building-intro.js';
 const DEG=180/Math.PI,near=(a,b,eps)=>Math.abs(a-b)<=eps,{latitude,longitude}=SITE;
 const at=(date,time)=>{const [h,m]=time.split(':').map(Number),sun=sunPosition(toInstant(date,h*60+m),latitude,longitude);return {height:sun.elevation*DEG,bearing:sun.azimuth*DEG,sun};};
-// The site is Lyon; coordinates are deliberately no finer than the neighbourhood.
-assert.ok(near(latitude,45.77,.03)&&near(longitude,4.84,.03));assert.equal(String(latitude).split('.')[1].length<=2,true);
+// The apartment's coordinates, as supplied: 45.77717° N, 4.83703° E.
+assert.equal(latitude,45.77717);assert.equal(longitude,4.83703);
 // Noon heights through the year: 90° - latitude ± the tilt of the Earth.
 assert.ok(near(at('2026-06-21','13:44').height,90-latitude+23.44,.15));assert.ok(near(at('2026-12-21','12:40').height,90-latitude-23.44,.15));assert.ok(near(at('2026-03-20','12:48').height,90-latitude,.3));
 for(const date of ['2026-06-21','2026-12-21','2026-03-20'])assert.ok(near(at(date,formatTime(sunTimes(date,latitude,longitude).noon)).bearing,180,1.2),'the sun is due south at solar noon');

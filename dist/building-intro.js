@@ -1,11 +1,11 @@
 import * as THREE from './vendor/three.module.js';
-import {boxProject,cloneProjected} from './surface-materials.js?v=ca158c85565f';
-import {casementBars} from './window-pattern.js?v=ca158c85565f';
+import {boxProject,cloneProjected} from './surface-materials.js?v=938384afccaa';
+import {casementBars} from './window-pattern.js?v=938384afccaa';
 
 // The apartment in its building: a corner block on the slopes of the Croix-Rousse,
 // second floor, long façade to the south and one window round the corner to the east.
-// Position is rounded to the neighbourhood; it only steers the sun.
-export const SITE={latitude:45.78,longitude:4.84,facadeBearing:172,storey:4.3,level:2,levels:5,depth:23.1};
+// The coordinates are the apartment's own, as given by its owner; they steer the sun.
+export const SITE={latitude:45.77717,longitude:4.83703,facadeBearing:172,storey:4.3,level:2,levels:5,depth:23.1};
 const STOREY=SITE.storey,STREET=-(SITE.level*STOREY+.254);
 
 // ---------- Timeline (pure): fly in, point out the apartment, pull the building apart.

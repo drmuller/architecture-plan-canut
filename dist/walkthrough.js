@@ -23,9 +23,11 @@ export function createWalkthrough({camera,canvas,viewport,architecture,furniture
  const panel=document.createElement('div');panel.className='walk-panel';panel.hidden=true;
  const location=document.createElement('span');location.className='walk-location';location.setAttribute('role','status');
  const label=document.createElement('label');label.textContent='Jump to ';const menu=document.createElement('select');menu.setAttribute('aria-label','Walkthrough destination');label.append(menu);
- const exitButton=document.createElement('button');exitButton.textContent='Exit walkthrough';exitButton.onclick=()=>exit();
+ const exitButton=document.createElement('button');exitButton.innerHTML='Exit<span> walkthrough</span>';exitButton.onclick=()=>exit();
  const hint=document.createElement('small');hint.textContent='Click a floor dot to move · Drag or use the ball to look · Arrow keys turn · Esc exits';
  panel.append(location,label,exitButton,hint);viewport.append(panel);
+ // The panel wraps on narrow screens; bars stacked above it follow its real height.
+ if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>viewport.style.setProperty('--walk-h',panel.offsetHeight+'px')).observe(panel);
  const flash=document.createElement('div');flash.className='walk-flash';viewport.append(flash);
  const entries=points.map(point=>{const button=document.createElement('button');button.className='walk-point'+(point.route?' walk-route-point':'');button.dataset.walkId=point.id;button.setAttribute('aria-label',point.route?'Move along '+point.label+' · point '+point.step:'Walk to '+point.label);button.title=point.label;const ring=document.createElement('span');ring.setAttribute('aria-hidden','true');const text=document.createElement('small');text.textContent=point.label;button.append(ring,text);button.onclick=e=>{if(e.detail===0)jump(point.id);};markerLayer.append(button);let option=null;if(!point.route){option=document.createElement('option');option.value=point.id;option.textContent=point.label;menu.append(option);}return {...point,button,option,position:new THREE.Vector3(point.x,.035,point.z)};});
  const visible=object=>{for(let p=object;p;p=p.parent)if(!p.visible)return false;return true;};
