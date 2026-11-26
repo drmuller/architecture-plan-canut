@@ -1,5 +1,6 @@
 import * as THREE from './vendor/three.module.js';
-import {boxProject,cloneProjected} from './surface-materials.js?v=f9cd2a6d7d2a';
+import {boxProject,cloneProjected} from './surface-materials.js?v=ca158c85565f';
+import {casementBars} from './window-pattern.js?v=ca158c85565f';
 
 // The apartment in its building: a corner block on the slopes of the Croix-Rousse,
 // second floor, long façade to the south and one window round the corner to the east.
@@ -36,7 +37,8 @@ const PPM=48,WALL='#f1efe5';
 const makeRandom=seed=>()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
 function canvasPair(width,height){const make=()=>{const c=document.createElement('canvas');c.width=Math.max(2,Math.round(width*PPM));c.height=Math.max(2,Math.round(height*PPM));return c;};const day=make(),night=make(),lit=night.getContext('2d');lit.fillStyle='#000';lit.fillRect(0,0,night.width,night.height);return {day,night,paint:day.getContext('2d'),lit};}
 function finish(pair){const map=new THREE.CanvasTexture(pair.day),glow=new THREE.CanvasTexture(pair.night);map.colorSpace=glow.colorSpace=THREE.SRGBColorSpace;map.anisotropy=glow.anisotropy=8;return {map,glow};}
-// A tall Lyon window: white frame, six panes and, for French windows, an iron rail.
+// A window as it is built in the model: frame, leaves and small upper panes. Openings
+// that start near the floor get an iron rail.
 function paintWindow(pair,x,base,width,height,{random,blind=false,rail=true}={}){
 const {paint,lit,day}=pair,px=x*PPM,w=width*PPM,h=height*PPM,py=day.height-(base+height)*PPM;
 paint.fillStyle='rgba(60,58,50,.28)';paint.fillRect(px-3,py-3,w+6,h+5);
@@ -44,9 +46,9 @@ if(blind){paint.fillStyle='#e2ded2';paint.fillRect(px,py,w,h);paint.strokeStyle=
 const glass=paint.createLinearGradient(0,py,0,py+h);glass.addColorStop(0,'#9fb0b8');glass.addColorStop(.55,'#6f838f');glass.addColorStop(1,'#56666f');paint.fillStyle=glass;paint.fillRect(px,py,w,h);
 // Some panes are curtained.
 if(random&&random()>.55){paint.fillStyle='rgba(244,240,230,.55)';paint.fillRect(px,py,random()>.5?w:w/2,h);}
-paint.strokeStyle='#f6f4ee';paint.lineWidth=3;paint.strokeRect(px+1.5,py+1.5,w-3,h-3);paint.lineWidth=2;paint.beginPath();paint.moveTo(px+w/2,py);paint.lineTo(px+w/2,py+h);for(const f of [.28,.64]){paint.moveTo(px,py+h*f);paint.lineTo(px+w,py+h*f);}paint.stroke();
+const bars=casementBars(width,height);paint.fillStyle='#f6f4ee';for(const p of bars.posts)paint.fillRect(px+(p.x-p.width/2)*PPM,py+(height-p.to)*PPM,Math.max(1.4,p.width*PPM),(p.to-p.from)*PPM);for(const r of bars.rails)paint.fillRect(px+r.from*PPM,py+(height-r.y-r.height/2)*PPM,(r.to-r.from)*PPM,Math.max(1.4,r.height*PPM));
 paint.fillStyle='#dedacd';paint.fillRect(px-4,py+h,w+8,3);
-if(rail){paint.strokeStyle='#2f3332';paint.lineWidth=1.4;const top=day.height-(base+1)*PPM;paint.beginPath();paint.moveTo(px,top);paint.lineTo(px+w,top);for(let bx=px+2;bx<px+w;bx+=5){paint.moveTo(bx,top);paint.lineTo(bx,py+h);}paint.stroke();}
+if(rail&&base<.75){paint.strokeStyle='#2f3332';paint.lineWidth=1.4;const top=day.height-(base+1)*PPM;paint.beginPath();paint.moveTo(px,top);paint.lineTo(px+w,top);for(let bx=px+2;bx<px+w;bx+=5){paint.moveTo(bx,top);paint.lineTo(bx,py+h);}paint.stroke();}
 if(random&&random()>.62){lit.fillStyle=random()>.3?'#ffd9a2':'#ffe9c8';lit.fillRect(px+2,py+2,w-4,h-4);}
 }
 function paintWall(pair,tone=WALL){const {paint,day}=pair;paint.fillStyle=tone;paint.fillRect(0,0,day.width,day.height);

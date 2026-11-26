@@ -57,7 +57,9 @@ A young woman, 1.65 m tall with long brown hair, stands by the kitchen island as
 
 Layout and material choices save in browser storage.
 
-Printed widths from the plan guide the model. The entry and bathroom box has a 2.90 m plasterboard ceiling; the kitchen/living area reaches 4.00 m with a main beam and timber joists. Beam section, joist spacing, furniture sizes and window heights are illustrative and should not be treated as survey dimensions. The same goes for the person, the lamps, rugs and plants, the sun path and the plain ceilings over the bedrooms and hall.
+Printed widths from the plan guide the model. The entry and bathroom box has a 2.90 m plasterboard ceiling; the kitchen/living area reaches 4.00 m with a main beam and timber joists. Beam section, joist spacing and furniture sizes are illustrative and should not be treated as survey dimensions.
+
+The windows are drawn from a photograph of the rooms during the works, not from measurements. Their widths come from the plan; the glazing runs from about 0.90 m to 2.90 m above the floor. Each has two opening leaves with a grid of small panes at the top, a tall pane and a shorter one below; the wide windows (about 1.70 m) add a fixed side light at each end, the narrow ones (about 1.20 m) do not. The kitchen window has the same design but starts at 1.10 m, above the worktop. The pattern lives in `dist/window-pattern.js` and is reused on the façades in the introduction. The same goes for the person, the lamps, rugs and plants, the sun path and the plain ceilings over the bedrooms and hall.
 
 Three.js, OrbitControls and the add-ons in `dist/vendor/addons` (r170: EffectComposer, GTAOPass, OutputPass, RoomEnvironment and their shaders) are copyright the Three.js authors and licensed under MIT. See <https://github.com/mrdoob/three.js/blob/master/LICENSE>.
 

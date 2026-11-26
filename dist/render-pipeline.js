@@ -4,7 +4,7 @@ import {EffectComposer} from './vendor/addons/EffectComposer.js';
 import {Pass} from './vendor/addons/Pass.js';
 import {GTAOPass} from './vendor/addons/GTAOPass.js';
 import {OutputPass} from './vendor/addons/OutputPass.js';
-import {createSky} from './textures.js?v=f9cd2a6d7d2a';
+import {createSky} from './textures.js?v=ca158c85565f';
 
 // Closed solids live on this layer too; their inner faces are painted as the section fill.
 export const CAP_LAYER=1;
@@ -32,7 +32,9 @@ sun.castShadow=true;Object.assign(sun.shadow.camera,{left:-12.5,right:12.5,top:1
 scene.add(sun,sun.target);sun.target.position.copy(centre);
 const ground=new THREE.Mesh(new THREE.CircleGeometry(120,48),new THREE.ShadowMaterial({opacity:.2}));ground.rotation.x=-Math.PI/2;ground.position.y=-.26;ground.receiveShadow=true;ground.userData.noAO=true;ground.raycast=()=>{};scene.add(ground);
 
-const cutPlanes=[section.plane],capMaterial=new THREE.MeshBasicMaterial({color:0x2c312d,side:THREE.BackSide,clippingPlanes:cutPlanes,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4});
+// The fill is nudged forward by a constant sliver only, so it wins where a cut face lies
+// exactly in a floor; a slope-scaled offset would push it through thin panels.
+const cutPlanes=[section.plane],capMaterial=new THREE.MeshBasicMaterial({color:0x2c312d,side:THREE.BackSide,clippingPlanes:cutPlanes,polygonOffset:true,polygonOffsetFactor:0,polygonOffsetUnits:-3});
 let camera=null;
 function setClipping(active){const planes=active?cutPlanes:null;scene.traverse(object=>{if(!object.material)return;for(const material of Array.isArray(object.material)?object.material:[object.material]){material.clippingPlanes=planes;material.clipShadows=true;}});if(gtao)gtao.normalMaterial.clippingPlanes=planes;renderer.shadowMap.needsUpdate=true;}
 function draw(target){

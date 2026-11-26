@@ -1,16 +1,17 @@
-import {createFurnitureMaterials,furnitureBuilder,isolateFurnitureMaterials,applyFurnitureColours} from './furniture-models.js?v=f9cd2a6d7d2a';
-import {buildCharacter,createCharacterMaterials,setCharacterPose} from './character-model.js?v=f9cd2a6d7d2a';
-import {nextSurfaceSelection,rememberColour,selectionGeometry} from './surface-editor.js?v=f9cd2a6d7d2a';
-import {configureTiles,boxProject} from './surface-materials.js?v=f9cd2a6d7d2a';
-import {finishMap,reliefMap,RELIEF_DEPTH,PLANK_TILE} from './textures.js?v=f9cd2a6d7d2a';
-import {createPipeline,tagSolids} from './render-pipeline.js?v=f9cd2a6d7d2a';
-import {daylightFor,formatTime,compassPoint} from './daylight.js?v=f9cd2a6d7d2a';
-import {sunPosition,sunTimes,toInstant,localTime,isDate} from './solar.js?v=f9cd2a6d7d2a';
-import {createBuildingIntro,introStage,introCamera,introCaption,INTRO_SECONDS,SITE} from './building-intro.js?v=f9cd2a6d7d2a';
-import {createSectionCut,dragToTravel} from './section-cut.js?v=f9cd2a6d7d2a';
-import {createViewJoystick,orbitOffset,compassDirections} from './view-joystick.js?v=f9cd2a6d7d2a';
-import {createWalkthrough,buildWalkPoints} from './walkthrough.js?v=f9cd2a6d7d2a';
-import {DESIGN_FORMAT,MAX_DESIGN_BYTES,validateDesign,designFingerprint,resolveDesignTexture} from './design-format.js?v=f9cd2a6d7d2a';
+import {createFurnitureMaterials,furnitureBuilder,isolateFurnitureMaterials,applyFurnitureColours} from './furniture-models.js?v=ca158c85565f';
+import {buildCharacter,createCharacterMaterials,setCharacterPose} from './character-model.js?v=ca158c85565f';
+import {nextSurfaceSelection,rememberColour,selectionGeometry} from './surface-editor.js?v=ca158c85565f';
+import {configureTiles,boxProject} from './surface-materials.js?v=ca158c85565f';
+import {casementBars,WINDOW_SILL,WINDOW_HEAD,KITCHEN_SILL} from './window-pattern.js?v=ca158c85565f';
+import {finishMap,reliefMap,RELIEF_DEPTH,PLANK_TILE} from './textures.js?v=ca158c85565f';
+import {createPipeline,tagSolids} from './render-pipeline.js?v=ca158c85565f';
+import {daylightFor,formatTime,compassPoint} from './daylight.js?v=ca158c85565f';
+import {sunPosition,sunTimes,toInstant,localTime,isDate} from './solar.js?v=ca158c85565f';
+import {createBuildingIntro,introStage,introCamera,introCaption,INTRO_SECONDS,SITE} from './building-intro.js?v=ca158c85565f';
+import {createSectionCut,dragToTravel} from './section-cut.js?v=ca158c85565f';
+import {createViewJoystick,orbitOffset,compassDirections} from './view-joystick.js?v=ca158c85565f';
+import {createWalkthrough,buildWalkPoints} from './walkthrough.js?v=ca158c85565f';
+import {DESIGN_FORMAT,MAX_DESIGN_BYTES,validateDesign,designFingerprint,resolveDesignTexture} from './design-format.js?v=ca158c85565f';
 import * as THREE from 'three';
 import {OrbitControls} from './vendor/OrbitControls.js';
 const $=id=>document.getElementById(id), wrap=$('canvas-wrap'),query=new URLSearchParams(location.search);
@@ -106,12 +107,19 @@ part.mesh.scale.y=visibleHeight/part.height;
 part.mesh.position.y=bottom+visibleHeight/2;
 }
 }
-function wall(a,b,thick=.07,h=mainH,openings=[],out=null,material=mats.walls,lowBox=false,skirting=true){const g=new THREE.Group();architecture.add(g);const len=Math.hypot(b[0]-a[0],b[1]-a[1]);g.position.set(a[0],0,a[1]);g.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0]);const cuts=[0,len,...openings.flatMap(o=>[o.at,o.at+o.width])].sort((a,b)=>a-b);for(let i=0;i<cuts.length-1;i++){const s=Math.max(0,cuts[i]),e=Math.min(len,cuts[i+1]);if(e-s<.001)continue;const o=openings.find(o=>(s+e)/2>o.at&&(s+e)/2<o.at+o.width);if(!o)box(g,(s+e)/2,0,0,e-s,h,thick,material);else{if(o.sill)box(g,(s+e)/2,0,0,e-s,o.sill,thick,material);const top=(o.sill||0)+o.height;if(h>top)box(g,(s+e)/2,top,0,e-s,h-top,thick,material);if(o.window){const y=o.sill;box(g,(s+e)/2,y,0,e-s,o.height,.025,glass);for(const xx of [s+.025,(s+e)/2,e-.025])box(g,xx,y,0,.035,o.height,.07,white);for(const yy of [y,y+o.height/2,y+o.height-.03])box(g,(s+e)/2,yy,0,e-s,.035,.07,white);box(g,(s+e)/2,y-.04,0,e-s+.08,.05,thick+.09,white)}}}
+// A wall is built from several boxes. Where two of them meet, the end face of one lies
+// inside the wall; the sun treats it as lit and it can flicker through as a bright
+// hairline. So neighbouring pieces overlap by a millimetre, their buried end faces are
+// not drawn, and the sides of each opening are lined separately from sill to head.
+const SEAL=.001,buriedFace=new THREE.MeshBasicMaterial({visible:false});
+function buryEnds(mesh,start,end){if(!(start||end))return mesh;const faces=Array.isArray(mesh.material)?[...mesh.material]:Array(6).fill(mesh.material);if(end)faces[0]=buriedFace;if(start)faces[1]=buriedFace;mesh.material=faces;return mesh;}
+function wall(a,b,thick=.07,h=mainH,openings=[],out=null,material=mats.walls,lowBox=false,skirting=true,joined=[false,false]){const g=new THREE.Group();architecture.add(g);const len=Math.hypot(b[0]-a[0],b[1]-a[1]);g.position.set(a[0],0,a[1]);g.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0]);const room=out&&Math.sin(g.rotation.y)*out[0]+Math.cos(g.rotation.y)*out[1]>0?-1:1;const cuts=[0,len,...openings.flatMap(o=>[o.at,o.at+o.width])].sort((a,b)=>a-b);for(let i=0;i<cuts.length-1;i++){const s=Math.max(0,cuts[i]),e=Math.min(len,cuts[i+1]);if(e-s<.001)continue;const o=openings.find(o=>(s+e)/2>o.at&&(s+e)/2<o.at+o.width);if(!o)buryEnds(box(g,(s+e)/2,0,0,e-s+SEAL,h,thick,material),s>0||joined[0],e<len||joined[1]);else{if(o.sill)buryEnds(box(g,(s+e)/2,0,0,e-s+SEAL,o.sill,thick,material),s>0,e<len);const top=(o.sill||0)+o.height;if(h>top)buryEnds(box(g,(s+e)/2,top,0,e-s+SEAL,h-top,thick,material),s>0,e<len);const lining=Array.isArray(material)?material[0]:material;for(const [x,turn] of [[s,1],[e,-1]]){if(x<=.001||x>=len-.001)continue;const jamb=new THREE.Mesh(new THREE.PlaneGeometry(thick,o.height),lining);jamb.position.set(x,(o.sill||0)+o.height/2,0);jamb.rotation.y=turn*Math.PI/2;jamb.castShadow=jamb.receiveShadow=true;g.add(jamb);}if(o.window){const y=o.sill,bars=casementBars(e-s,o.height);box(g,(s+e)/2,y,0,e-s,o.height,.02,glass);for(const p of bars.posts)box(g,s+p.x,y+p.from,0,p.width,p.to-p.from,.07,white);for(const r of bars.rails)box(g,s+(r.from+r.to)/2,y+r.y-r.height/2,0,r.to-r.from,r.height,.066,white);box(g,(s+e)/2,y-.045,0,e-s+.08,.045,thick+.09,white);box(g,s+bars.handle.x,y+.07,room*.044,.012,o.height-.14,.012,dark);box(g,s+bars.handle.x,y+bars.handle.y,room*.058,.028,.1,.028,dark)}}}
 // Skirting stops at door jambs instead of bridging the opening.
 if(skirting)for(let i=0;i<cuts.length-1;i++){
 const s=Math.max(0,cuts[i]),e=Math.min(len,cuts[i+1]);if(e-s<.001)continue;
 const opening=openings.find(o=>(s+e)/2>o.at&&(s+e)/2<o.at+o.width);
-if(!opening||opening.sill)box(g,(s+e)/2,0,0,e-s,.095,thick+.016,white);
+// A board on each room side (not one block through the wall, which would hide the cut face).
+if(!opening||opening.sill)for(const side of out?[room]:[-1,1])box(g,(s+e)/2,0,side*(thick/2+.002),e-s,.095,.012,white);
 }
 const parts=g.children.map(mesh=>{const height=mesh.geometry.parameters.height,bottom=mesh.position.y-height/2,top=bottom+height;return{mesh,height,bottom,top,followsCeiling:Math.abs(top-h)<.00001};});
 walls.push({g,a,b,out,h,lowBox,parts,cutHeight:h});return g;}
@@ -134,14 +142,17 @@ for(let i=0;i<cuts.length-1;i++){
 const from=cuts[i],to=cuts[i+1],start=[a[0]+dx*from,a[1]+dz*from],end=[a[0]+dx*to,a[1]+dz*to],mid=[(start[0]+end[0])/2,(start[1]+end[1])/2];
 const faces=[1,-1].map(side=>{const outside=out&&(nx*side*out[0]+nz*side*out[1]>.5);const room=outside?'Exterior':roomAt(mid[0]+nx*side*(t/2+.12),mid[1]+nz*side*(t/2+.12));const direction=Math.abs(nx)>.5?(nx*side>0?'west':'east'):(nz*side>0?'north':'south');const label=room+' · '+direction+' wall';const count=wallLabelCounts[label]=(wallLabelCounts[label]||0)+1;const key=`wall-${ax}-${az}-${bx}-${bz}-${i}-${side>0?'a':'b'}`;if(!outside&&['Bathroom','Shower room'].includes(room))surfaceAliases[key]=(room==='Bathroom'?'sdb-':'sde-')+direction;return addSurface(key,label+(count>1?' · section '+count:''),{parent:'walls',group:outside?'Exterior wall faces':'Individual wall faces'});});
 const openings=o.filter(open=>open.at<to*len&&open.at+open.width>from*len).map(open=>({...open,at:open.at-from*len}));
-result=wall(start,end,t,h,openings,out,[faces[0],faces[0],faces[0],faces[0],faces[0],faces[1]],lb);
+result=wall(start,end,t,h,openings,out,[faces[0],faces[0],faces[0],faces[0],faces[0],faces[1]],lb,true,[i>0,i<cuts.length-2]);
 }
 return result;
 }
 // Exterior: real window gaps, thick masonry and a slightly tapered east wall.
 w(151,563,151,1049,.43,4,[],[-1,0]);for(const [ax,az,bx,bz]of[[151,563,228,563],[228,563,228,600],[228,600,286,600],[286,600,286,563],[286,563,383,563],[383,563,383,600],[383,600,827,600]])w(ax,az,bx,bz,.20,4,[],[0,-1]);w(827,600,827,271,.38,4,[{at:Z(600)-Z(550),width:1.0,height:2.5}],[-1,0]);w(827,271,1413,271,.43,4,[],[0,-1]);
-w(1413,271,1386,1049,.43,4,[{at:.48,width:1.7,sill:.92,height:2.4,window:true}],[1,0]);
-const facadeWindows=[[172,327],[466,575],[676,786],[930,1080],[1178,1332]].map(([a,b])=>({at:X(a),width:X(b)-X(a),sill:.17,height:3.1,window:true}));w(151,1049,1386,1049,.43,4,facadeWindows,[0,1]);
+// Windows follow a photograph of the rooms: glazing from about 0.90 m to 2.90 m, and the
+// kitchen window, of the same design, starting above the worktop.
+const kitchenWindow={at:.48,width:1.7,sill:KITCHEN_SILL,height:WINDOW_HEAD-KITCHEN_SILL,window:true};
+w(1413,271,1386,1049,.43,4,[kitchenWindow],[1,0]);
+const facadeWindows=[[172,327],[466,575],[676,786],[930,1080],[1178,1332]].map(([a,b])=>({at:X(a),width:X(b)-X(a),sill:WINDOW_SILL,height:WINDOW_HEAD-WINDOW_SILL,window:true}));w(151,1049,1386,1049,.43,4,facadeWindows,[0,1]);
 // Bedroom partitions, corridor doors and the red entry / bathroom box.
 w(420.5,710,420.5,1049,.07);w(669.5,710,669.5,1049,.07);w(927.5,710,927.5,1049,.07);
 w(151,710,927.5,710,.07,4,[{at:X(335),width:X(416)-X(335),height:2.2},{at:X(572),width:X(661)-X(572),height:2.2},{at:X(682),width:X(751)-X(682),height:2.2}]);
@@ -718,7 +729,7 @@ let building=null,intro=null;
 const introPose=seconds=>{const overview=presetPose('overview');return introCamera(seconds,{position:overview.p,target:overview.t},viewFit());};
 function startIntro(){
 if(intro)return;if(walkthrough?.active)walkthrough.exit(false);if(section.active){section.remove();refreshCut();}selectFurniture(null);clearSurfaceSelection();closeMenus();setView('overview',true);
-if(!building){building=createBuildingIntro({south:facadeWindows.map(w=>({at:w.at,width:w.width,sill:w.sill,height:w.height})),east:{at:Z(1049)+.215-2.18,width:1.7,sill:.92,height:2.4}});scene.add(building.group);}
+if(!building){building=createBuildingIntro({south:facadeWindows.map(w=>({at:w.at,width:w.width,sill:w.sill,height:w.height})),east:{at:Z(1049)+.215-kitchenWindow.at-kitchenWindow.width,width:kitchenWindow.width,sill:kitchenWindow.sill,height:kitchenWindow.height}});scene.add(building.group);}
 building.group.visible=true;controls.enabled=false;transition=null;spin=null;perspective.near=1;perspective.far=1600;perspective.updateProjectionMatrix();pipeline.ground.visible=false;
 document.body.classList.add('intro-playing');$('intro').hidden=false;intro={start:performance.now(),stage:introStage(0)};stepIntro(intro.start);
 }

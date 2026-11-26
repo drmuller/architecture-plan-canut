@@ -23,6 +23,13 @@ context.w(151,710,927.5,710,.07,4,[{at:2,width:.8,height:2.2},{at:4.7,width:1,he
 assert.ok(walls.length>3);
 for(const wall of walls){context.applyWallCut(wall,4,.5);for(const part of wall.parts){if(part.bottom>=2.2)assert.equal(part.mesh.visible,false);assert.ok(part.mesh.scale.y>=0);}}
 assert.equal(new Set(Object.keys(materials)).size,Object.keys(materials).length);
+// Each opening is lined at both sides from floor (or sill) to head, and the boxes that make up
+// a wall never draw the end faces buried inside it (they would catch the sun and show as hairlines).
+const jambs=walls.flatMap(wall=>wall.parts).filter(part=>part.mesh.geometry.type==='PlaneGeometry');
+assert.equal(jambs.length,4,'two doors, two sides each');for(const jamb of jambs){assert.equal(jamb.bottom,0);assert.ok(Math.abs(jamb.top-2.2)<1e-9);assert.ok(Math.abs(Math.abs(jamb.mesh.rotation.y)-Math.PI/2)<1e-9);}
+let buried=0;for(const wall of walls)for(const part of wall.parts){const faces=part.mesh.material;if(part.mesh.geometry.type!=='BoxGeometry'||!Array.isArray(faces))continue;faces.forEach((face,index)=>{if(face.visible)return;buried++;assert.ok(index<2,'only end faces are ever buried');});assert.ok(faces[4].visible&&faces[5].visible,'room faces are always drawn');}
+assert.ok(buried>=8,'ends beside openings and at room boundaries are buried: '+buried);
+const freeEnd=walls[0].parts[0].mesh.material;assert.ok(freeEnd[0].visible&&freeEnd[1].visible,'a wall keeps its true ends');
 for(const axis of ['x','z','floor']){const material=new THREE.MeshStandardMaterial();configureTiles(material,axis);const shader={vertexShader:'#include <worldpos_vertex>',fragmentShader:'#include <map_fragment>'};material.onBeforeCompile(shader);assert.match(shader.vertexShader,/modelMatrix\*vec4\(transformed/);assert.match(shader.fragmentShader,/fwidth/);assert.ok(shader.fragmentShader.includes(String(TILE_SIZE+GROUT_SIZE)));assert.match(material.customProgramCacheKey(),new RegExp(axis+'$'));}
 assert.equal(TILE_SIZE,.05);assert.equal(GROUT_SIZE,.002);
 

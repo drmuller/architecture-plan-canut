@@ -4,7 +4,7 @@ import base64,hashlib,pathlib,re
 repo=pathlib.Path(__file__).resolve().parents[1]
 root=repo/'dist'
 # Local modules in dependency order. Each keeps its own scope in the standalone page.
-MODULES=['design-format.js','surface-materials.js','textures.js','solar.js','daylight.js','building-intro.js','section-cut.js','view-joystick.js','surface-editor.js','furniture-models.js','character-model.js','render-pipeline.js','walkthrough.js','app.js']
+MODULES=['design-format.js','surface-materials.js','window-pattern.js','textures.js','solar.js','daylight.js','building-intro.js','section-cut.js','view-joystick.js','surface-editor.js','furniture-models.js','character-model.js','render-pipeline.js','walkthrough.js','app.js']
 # Three.js add-ons, also in dependency order. Each keeps its own scope.
 ADDONS=['CopyShader.js','OutputShader.js','SimplexNoise.js','PoissonDenoiseShader.js','GTAOShader.js','Pass.js','ShaderPass.js','MaskPass.js','EffectComposer.js','RoomEnvironment.js','GTAOPass.js','OutputPass.js']
 # Version local modules too: WebViews may otherwise keep stale module responses.

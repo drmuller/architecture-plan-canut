@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {softBoxGeometry} from './furniture-models.js?v=f9cd2a6d7d2a';
+import {softBoxGeometry} from './furniture-models.js?v=ca158c85565f';
 
 // A young woman with long brown hair, 1.65 m tall, as a scale figure. Dimensions are
 // metres; she faces +z and stands on y = 0. Everything is built from lofted rings so the
