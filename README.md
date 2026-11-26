@@ -12,11 +12,42 @@ python3 -m http.server 4173 --directory dist
 
 Then open <http://localhost:4173>.
 
-Use **Arrange furniture** to select, drag, rotate, nudge, reset, and undo movable furnishings. Layout and material choices save in browser storage. Furniture movement is intentionally freeform; compare the floor plan when checking clearances.
+## Using the editor
 
-Printed widths from the plan guide the model. The entry and bathroom box has a 2.90 m plasterboard ceiling; the kitchen/living area reaches 4.00 m with a main beam and timber joists. Beam section, joist spacing, furniture sizes and window heights are illustrative and should not be treated as survey dimensions.
+The model fills the window. A top bar holds the view tools (**Views**, **Walk**, **Cut**, **Display**, **Light**), a side panel holds the editing tabs (**Finishes**, **Furniture**, **Space**, **Plan**), and a camera ball sits at the top right. On phones the panel becomes a bottom sheet: tap a tab to open it, tap it again to close it.
 
-Three.js and OrbitControls are copyright the Three.js authors and licensed under MIT. See <https://github.com/mrdoob/three.js/blob/master/LICENSE>.
+- **Click anything to select it.** Furniture and the person show a blue frame, a floating toolbar (turn, edit, put back, deselect) and a round handle. Walls, floors, joinery, worktops and ceilings open their finishes, with quick colours beside the click.
+- **Drag the selected piece** to move it across the floor. Drag the round handle around it to turn it (5° steps; hold Shift for free rotation). **Press and hold** any piece to grab it without selecting it first. Every other drag orbits the camera.
+- Arrow keys nudge 10 cm (Shift: 1 cm), R turns 15°, Ctrl/⌘+Z undoes, Esc deselects. Furniture movement is freeform; compare the floor plan when checking clearances.
+- **Double-click** a point to fly there. Room labels are buttons too.
+
+### Camera ball
+
+The ball at the top right is a thumbstick: push it and the view keeps orbiting that way, release and it springs back. It also works as a compass. The N, E, S and W markers and the ▲ top marker follow the real camera, and tapping one brings that side to the front (▲ gives a top view). In walkthrough the ball turns your head instead. When it has keyboard focus, the arrow keys steer it.
+
+### Section cut
+
+**Cut** slices the model with a plane that faces the camera at the moment it is created. After that the plane keeps its orientation: it only moves **forward or backward**, with the slider, the − / + buttons (hold to keep moving), the orange handle in the model, the mouse wheel over the bar, or the `[` and `]` keys. Cut faces are filled dark, as in a drawn section, and what is cut away casts no shadow.
+
+- **Upright** (on by default) stands the cut vertically along the camera's heading, snapping square to the walls when within a few degrees; from a top view it becomes a plan cut 1.20 m above the floor. Turn it off to match the exact camera tilt.
+- **Flip** shows the other side, **Re-aim** cuts again from the current view, and **Remove** (or the Cut button) deletes it.
+- While a cut is active, automatic wall cutaways are suspended so the section is true. The cut is a local viewing aid; it is not saved or shared.
+
+### Light and rendering
+
+**Light** sets the time of day from 07:00 to 22:30, with Morning, Midday, Golden hour and Evening shortcuts. The sun moves from east to west and enters through the real window openings; pendants and the floor lamp come on at dusk. The plan does not give the orientation, so **Windows face** lets you choose which way the window façade looks. **Realistic** rendering adds ambient occlusion, finer shadows and multisampling; **Fast** is lighter and is the default on touch devices. If frames stay slow the app first skips occlusion while moving, then switches to Fast. `?quality=high|standard` and `?hour=15.5` in the address force a setting.
+
+Rendering is on demand: the picture is redrawn only when something changes. Finishes are procedural and true to scale (12.5 cm parquet boards, veneer on joinery, sawn timber overhead, fine plaster), projected in metres so they stay consistent across split or cut-away walls.
+
+### The person
+
+A young woman, 1.65 m tall with long brown hair, stands by the kitchen island as a scale figure. She can be moved and turned like furniture, switched between **Standing** and **Sitting**, hidden under **Display → Person**, and recoloured part by part (hair, jumper, jeans, shoes, skin). Her pose and colours travel with the design.
+
+Layout and material choices save in browser storage.
+
+Printed widths from the plan guide the model. The entry and bathroom box has a 2.90 m plasterboard ceiling; the kitchen/living area reaches 4.00 m with a main beam and timber joists. Beam section, joist spacing, furniture sizes and window heights are illustrative and should not be treated as survey dimensions. The same goes for the person, the lamps, rugs and plants, the sun path and the plain ceilings over the bedrooms and hall.
+
+Three.js, OrbitControls and the add-ons in `dist/vendor/addons` (r170: EffectComposer, GTAOPass, OutputPass, RoomEnvironment and their shaders) are copyright the Three.js authors and licensed under MIT. See <https://github.com/mrdoob/three.js/blob/master/LICENSE>.
 
 
 ## Save, export and shared editing
@@ -43,14 +74,14 @@ npm run build
 
 ## Walkthrough
 
-Choose **Walkthrough** in the camera bar for an eye-level visit. Click the small floor dots, spaced about half a metre along the room and corridor routes, to jump, or use **Jump to** to enter another room. Drag (or swipe) to turn your head; arrow keys also turn the view. Scroll or use +/− to change the field of view. **Exit walkthrough**, Esc, or another camera preset returns to orbit controls.
+Choose **Walk** in the top bar for an eye-level visit. Click the small floor dots, spaced about half a metre along the room and corridor routes, to jump, or use **Jump to** to enter another room. Drag (or swipe) to turn your head; the camera ball and the arrow keys also turn the view. Scroll or use +/− to change the field of view. **Exit walkthrough**, Esc, or another view returns to orbit controls.
 
 Walls and ceilings remain full in walkthrough mode. Points hidden by walls are not shown, and points occupied by moved furniture are disabled. Navigation is local to each visitor and does not change the shared design.
 
 
 ## Individual wall and bathroom colours
 
-In **Materials**, select a named wall face or choose **Pick a wall or tiled floor** and click it in the model. Dragging still orbits the camera. Opposite sides of partitions and room sections of long walls have separate finishes. The kitchen wood cladding also has its own finish.
+Click a wall face in the model, or pick a named one under **Finishes → Surface**. Dragging still orbits the camera. Opposite sides of partitions and room sections of long walls have separate finishes. The kitchen wood cladding also has its own finish.
 
 The SDB bathroom and SDE shower room have separate floor and wall palettes, including the shower recess returns and the ML cupboard return. Tiles are 50 × 50 mm with 2 mm grout; their world-space grid stays the same size during cutaways and ceiling-height changes. Custom colours leave the grout neutral.
 
@@ -61,16 +92,16 @@ Colours are included in automatic local recovery, JSON export/import and **Save 
 
 **Saved colours** is available for every material. The last used colour appears first; click a saved swatch to reuse that exact solid colour on the current surface or selection. **Save current** also stores an existing surface colour without recolouring anything. Up to 12 unique colours are kept, included in local recovery, JSON exports and shared design saves. Tile grids and neutral grout stay intact when applying colours.
 
-Use **Pick walls or tiled floors**, then click a face. **Shift-click** adds or removes faces, including without first entering selection mode. A blue overlay marks the actual selected faces, following wall cutaways and ceiling-height changes. The selection count and names appear in Materials. A normal click replaces the selection, and **Clear selection** or Esc clears it. Selection is local UI state and is never exported or shared. Colour/finish and roughness edits apply to the whole selection; uploaded texture editing is limited to a single non-tiled surface.
+Click a face to select it; **Shift-click** adds or removes faces. A blue overlay marks the actual selected faces, following wall cutaways and ceiling-height changes. The selection count and names appear in Finishes, and a floating bar offers quick colours. A normal click replaces the selection, and **Clear** or Esc clears it. Selection is local UI state and is never exported or shared. Colour/finish and roughness edits apply to the whole selection; uploaded texture editing is limited to a single non-tiled surface.
 
-Wall selection also works inside **Walkthrough**: enable **Pick walls or tiled floors**, click to select, or Shift-click to add/remove. Dragging still turns your head and floor dots still move between points. Colour changes keep the same camera position and direction. Esc first clears an active selection; a second Esc exits walkthrough.
+Selection also works inside **Walk**: click to select, or Shift-click to add/remove. Dragging still turns your head and floor dots still move between points. Colour changes keep the same camera position and direction. Esc first clears an active selection; a second Esc exits walkthrough.
 
 
 ## Furniture detail and individual colours
 
 Movable sofas, armchairs, chairs, beds, wardrobes, tables and the desk use rounded edges, padded cushions, timber legs, handles, fabric weave and wood grain. The reconstruction keeps the existing furniture IDs, positions, rotations and nominal sizes; these are illustrative furniture models, not identified manufacturer products.
 
-Select furniture in **Furniture** or click it in walkthrough. Choose **Wood & frame**, **Upholstery / fabric**, or **Bedding / scatter cushions** where available, then use the colour picker, swatches or saved colours. Only the selected piece changes. **Restore colours** restores that piece’s original palette independently of its position. Colour overrides are included in automatic local saves, JSON exports and explicit shared saves. Older designs load with the new default furniture palette. No database migration is required. In walkthrough, arrow keys keep turning the head; Esc deselects furniture before exiting.
+Click a piece in the model, or choose it in the **Furniture** list (which also flies the camera to it). Choose **Wood & frame**, **Upholstery / fabric**, or **Bedding / scatter cushions** where available, then use the colour picker, swatches or saved colours. Only the selected piece changes. **Restore colours** restores that piece’s original palette independently of its position. Colour overrides are included in automatic local saves, JSON exports and explicit shared saves. Older designs load with the new default furniture palette. No database migration is required. In walkthrough, arrow keys keep turning the head; Esc deselects furniture before exiting.
 
 
 ## Kitchen counter stools
@@ -81,9 +112,14 @@ Three counter stools stand on the living-room side of the kitchen peninsula, who
 ## Navigating the 3D model
 
 - **Zoom at the cursor:** the scroll wheel or trackpad pinch zooms toward the point under the pointer, not the screen centre.
-- **Double-click / double-tap** any point to fly there and orbit around it.
-- **Go to room…** in the view bar jumps to a close 3/4 view of each room.
-- **Panning** (right-drag, two fingers, or WASD/arrow keys) slides across the floor. It stops at the apartment's edges, so the model can't be lost. Q/E turn the view; Home resets it.
-- **Click or tap furniture** to select it without opening a panel first. A floating toolbar offers Move (drag mode), rotate ±15°, Colours and deselect.
-- On phones, the 3D view takes most of the screen. The headline is hidden, controls are larger and the help text is adapted to touch.
-- **Reset all finishes** is now at the bottom of Materials and asks for confirmation before resetting colours.
+- **Views** in the top bar lists the camera presets and a close 3/4 view of each room; Home returns to the overview.
+- **Panning** (right-drag, two fingers, or WASD/arrow keys) slides across the floor. It stops at the apartment's edges, so the model can't be lost. Q/E turn the view.
+- **Display** holds the wall cutaway and ceiling modes and the toggles for furniture, the person, room labels, dimension guides and ceiling zones.
+- **Reset all finishes** is at the bottom of Finishes and asks for confirmation before resetting colours.
+
+
+## Source layout and tests
+
+`dist/app.js` builds the model and wires the interface. Focused modules sit beside it: `render-pipeline.js` (lighting, occlusion, section fill), `daylight.js`, `textures.js`, `surface-materials.js`, `section-cut.js`, `view-joystick.js`, `character-model.js`, `furniture-models.js`, `walkthrough.js` and the design format and sharing modules. `scripts/build.py` inlines everything, including the Three.js add-ons, into the root `index.html`; keep each `import` on one line and one `export` per declaration so it can do so.
+
+`npm test` covers the geometry, the design format and sharing, the walkthrough, and the pure logic of the section cut, the camera ball, the daylight model and the scale figure.

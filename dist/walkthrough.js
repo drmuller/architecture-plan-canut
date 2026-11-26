@@ -24,7 +24,7 @@ export function createWalkthrough({camera,canvas,viewport,architecture,furniture
  const location=document.createElement('span');location.className='walk-location';location.setAttribute('role','status');
  const label=document.createElement('label');label.textContent='Jump to ';const menu=document.createElement('select');menu.setAttribute('aria-label','Walkthrough destination');label.append(menu);
  const exitButton=document.createElement('button');exitButton.textContent='Exit walkthrough';exitButton.onclick=()=>exit();
- const hint=document.createElement('small');hint.textContent='Click a floor dot · Drag to look · Arrow keys to turn · Esc clears selection, then exits';
+ const hint=document.createElement('small');hint.textContent='Click a floor dot to move · Drag or use the ball to look · Arrow keys turn · Esc exits';
  panel.append(location,label,exitButton,hint);viewport.append(panel);
  const flash=document.createElement('div');flash.className='walk-flash';viewport.append(flash);
  const entries=points.map(point=>{const button=document.createElement('button');button.className='walk-point'+(point.route?' walk-route-point':'');button.dataset.walkId=point.id;button.setAttribute('aria-label',point.route?'Move along '+point.label+' · point '+point.step:'Walk to '+point.label);button.title=point.label;const ring=document.createElement('span');ring.setAttribute('aria-hidden','true');const text=document.createElement('small');text.textContent=point.label;button.append(ring,text);button.onclick=e=>{if(e.detail===0)jump(point.id);};markerLayer.append(button);let option=null;if(!point.route){option=document.createElement('option');option.value=point.id;option.textContent=point.label;menu.append(option);}return {...point,button,option,position:new THREE.Vector3(point.x,.035,point.z)};});
@@ -59,5 +59,8 @@ export function createWalkthrough({camera,canvas,viewport,architecture,furniture
  window.addEventListener('blur',cancelGesture);
  window.addEventListener('keydown',e=>{if(e.defaultPrevented||!active||document.querySelector('dialog[open]')||e.target.closest('input,select,textarea,[contenteditable=true]'))return;const turns={ArrowLeft:[-.12,0],ArrowRight:[.12,0],ArrowUp:[0,.09],ArrowDown:[0,-.09]};if(e.key==='Escape'){e.preventDefault();exit();}else if(turns[e.key]){e.preventDefault();yaw+=turns[e.key][0];pitch=Math.max(-1.25,Math.min(1.25,pitch+turns[e.key][1]));lastMarkers=0;}});
  function zoom(factor){camera.fov=Math.max(45,Math.min(85,camera.fov*factor));camera.updateProjectionMatrix();lastMarkers=0;}
- return {start,exit,update,zoom,get active(){return active;}};
+ // Steering from outside (the camera joystick): relative turns and absolute headings.
+ function turn(dYaw,dPitch){if(!active)return;yaw+=dYaw;pitch=Math.max(-1.25,Math.min(1.25,pitch+dPitch));lastMarkers=0;}
+ function look(nextYaw,nextPitch=pitch){if(!active)return;yaw=nextYaw;pitch=Math.max(-1.25,Math.min(1.25,nextPitch));lastMarkers=0;}
+ return {start,exit,update,zoom,turn,look,get active(){return active;}};
 }
