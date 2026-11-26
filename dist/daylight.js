@@ -1,32 +1,33 @@
-// Sun, sky and lamp settings for an hour of the day. Pure numbers, no rendering.
-// Colours are linear-ish 0..1 triplets; angles are radians; +x is east when the
-// window façade (+z) faces south.
-const KEYS=[
-{hour:7,sun:[1,.66,.42],power:1.5,top:[.50,.62,.84],horizon:[1,.84,.72],ambient:.62,lamps:.35,exposure:1.12},
-{hour:9,sun:[1,.90,.76],power:3.1,top:[.40,.60,.90],horizon:[.92,.94,.98],ambient:.88,lamps:0,exposure:1.02},
-{hour:13,sun:[1,.97,.90],power:3.6,top:[.34,.57,.92],horizon:[.88,.93,.99],ambient:1,lamps:0,exposure:1},
-{hour:17,sun:[1,.91,.76],power:3.3,top:[.38,.58,.90],horizon:[.96,.92,.90],ambient:.9,lamps:0,exposure:1.02},
-{hour:19.5,sun:[1,.62,.34],power:2.4,top:[.42,.50,.76],horizon:[1,.72,.50],ambient:.6,lamps:.55,exposure:1.12},
-{hour:21,sun:[.95,.45,.32],power:.3,top:[.14,.19,.38],horizon:[.72,.46,.42],ambient:.30,lamps:1,exposure:1.3},
-{hour:22.5,sun:[.55,.65,1],power:.18,top:[.03,.05,.12],horizon:[.09,.12,.22],ambient:.15,lamps:1,exposure:1.5}
+// Light for a given position of the sun. Pure numbers, no rendering.
+// Colours are 0..1 triplets. In the model +z is the way the window façade looks and
+// +x is to its left when seen from the street (east, for a south-facing façade).
+const STOPS=[
+{height:-14,sun:[.5,.6,1],power:.16,top:[.02,.03,.08],horizon:[.05,.07,.14],ambient:.15,lamps:1,exposure:1.5},
+{height:-6,sun:[.6,.64,.95],power:.13,top:[.08,.12,.27],horizon:[.36,.3,.36],ambient:.25,lamps:1,exposure:1.4},
+{height:-1,sun:[1,.52,.32],power:.12,top:[.24,.33,.58],horizon:[.95,.6,.42],ambient:.42,lamps:.8,exposure:1.25},
+{height:2,sun:[1,.58,.32],power:1.3,top:[.36,.46,.72],horizon:[1,.74,.52],ambient:.56,lamps:.4,exposure:1.15},
+{height:8,sun:[1,.77,.54],power:2.5,top:[.42,.56,.84],horizon:[1,.86,.7],ambient:.72,lamps:.08,exposure:1.08},
+{height:18,sun:[1,.9,.76],power:3.1,top:[.38,.58,.9],horizon:[.93,.93,.95],ambient:.9,lamps:0,exposure:1.02},
+{height:40,sun:[1,.97,.9],power:3.6,top:[.33,.56,.92],horizon:[.88,.93,.99],ambient:1,lamps:0,exposure:1}
 ];
-export const DAY_START=KEYS[0].hour;
-export const DAY_END=KEYS[KEYS.length-1].hour;
-export const DEFAULT_HOUR=15.5;
-export const FACADES={south:0,west:-Math.PI/2,north:Math.PI,east:Math.PI/2};
-const lerp=(a,b,t)=>a+(b-a)*t,mix=(a,b,t)=>a.map((v,i)=>lerp(v,b[i],t));
-export function daylightAt(hour,facade='south'){
-const h=Math.max(DAY_START,Math.min(DAY_END,hour));let i=1;while(i<KEYS.length-1&&KEYS[i].hour<h)i++;
-const a=KEYS[i-1],b=KEYS[i],t=(h-a.hour)/(b.hour-a.hour),s=t*t*(3-2*t);
-// The sun rises in the east at 6 h, culminates at 13 h and sets in the west at 20 h.
-const day=Math.max(0,Math.min(1,(h-6)/14)),elevation=Math.max(.11,Math.sin(day*Math.PI)*1.0),azimuth=day*Math.PI+(FACADES[facade]??0);
-const flat=Math.cos(elevation);
+const MOON=[-.45,.62,.64].map(v=>v/Math.hypot(.45,.62,.64));
+const lerp=(a,b,t)=>a+(b-a)*t,mix=(a,b,t)=>a.map((v,i)=>lerp(v,b[i],t)),DEGREES=180/Math.PI;
+// Model-space direction of a compass bearing (radians) for a façade bearing in degrees.
+export function compassToModel(bearing,facadeBearing){const relative=bearing-facadeBearing/DEGREES;return [-Math.sin(relative),Math.cos(relative)];}
+// sun: {azimuth, elevation} in radians, azimuth clockwise from north.
+export function daylightFor(sun,facadeBearing=180){
+const height=Math.max(STOPS[0].height,Math.min(STOPS[STOPS.length-1].height,sun.elevation*DEGREES));let i=1;while(i<STOPS.length-1&&STOPS[i].height<height)i++;
+const a=STOPS[i-1],b=STOPS[i],t=(height-a.height)/(b.height-a.height),s=t*t*(3-2*t),night=height<-1;
+// After dark a faint moon stands in front of the windows; a rising sun never rakes below 2°.
+const lift=Math.max(sun.elevation,.035),[x,z]=compassToModel(sun.azimuth,facadeBearing),flat=Math.cos(lift);
 return {
-hour:h,
-sunDirection:[Math.cos(azimuth)*flat,Math.sin(elevation),Math.sin(azimuth)*flat],
+night,sunHeight:sun.elevation*DEGREES,
+sunDirection:night?MOON:[x*flat,Math.sin(lift),z*flat],
 sunColor:mix(a.sun,b.sun,s),sunPower:lerp(a.power,b.power,s),
 skyTop:mix(a.top,b.top,s),skyHorizon:mix(a.horizon,b.horizon,s),
 ambient:lerp(a.ambient,b.ambient,s),lamps:lerp(a.lamps,b.lamps,s),exposure:lerp(a.exposure,b.exposure,s)
 };
 }
-export function formatHour(hour){const h=Math.floor(hour),m=Math.round((hour-h)*60);return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+export function formatTime(minutes){const total=Math.round(minutes)%1440,h=Math.floor(total/60);return String(h).padStart(2,'0')+':'+String(total-h*60).padStart(2,'0');}
+const POINTS=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+export function compassPoint(degrees){return POINTS[Math.round(((degrees%360)+360)%360/22.5)%16];}

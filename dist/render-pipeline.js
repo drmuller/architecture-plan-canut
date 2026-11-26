@@ -4,7 +4,7 @@ import {EffectComposer} from './vendor/addons/EffectComposer.js';
 import {Pass} from './vendor/addons/Pass.js';
 import {GTAOPass} from './vendor/addons/GTAOPass.js';
 import {OutputPass} from './vendor/addons/OutputPass.js';
-import {createSky} from './textures.js?v=e68a6e50cd69';
+import {createSky} from './textures.js?v=f9cd2a6d7d2a';
 
 // Closed solids live on this layer too; their inner faces are painted as the section fill.
 export const CAP_LAYER=1;
@@ -28,7 +28,7 @@ const sky=createSky(),flatBackground=new THREE.Color('#e9ebe4');scene.background
 
 const hemisphere=new THREE.HemisphereLight(0xffffff,0xb7b1a2,.6);scene.add(hemisphere);
 const sun=new THREE.DirectionalLight(0xfff4e2,3.2),centre=new THREE.Vector3(7,1.5,4.3);
-sun.castShadow=true;Object.assign(sun.shadow.camera,{left:-12.5,right:12.5,top:12.5,bottom:-12.5,near:.5,far:70});sun.shadow.bias=-.0005;sun.shadow.normalBias=.022;
+sun.castShadow=true;Object.assign(sun.shadow.camera,{left:-12.5,right:12.5,top:12.5,bottom:-12.5,near:.5,far:110});sun.shadow.bias=-.0005;sun.shadow.normalBias=.022;
 scene.add(sun,sun.target);sun.target.position.copy(centre);
 const ground=new THREE.Mesh(new THREE.CircleGeometry(120,48),new THREE.ShadowMaterial({opacity:.2}));ground.rotation.x=-Math.PI/2;ground.position.y=-.26;ground.receiveShadow=true;ground.userData.noAO=true;ground.raycast=()=>{};scene.add(ground);
 
@@ -79,16 +79,23 @@ if(!composer)buildComposer();
 gtao.camera=camera;gtao.enabled=ao&&camera.isPerspectiveCamera;gtao.updateGtaoMaterial({radius:reach});
 composer.render();
 }
-const sunDirection=new THREE.Vector3(),white=[1,1,1],mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+const sunDirection=new THREE.Vector3(0,1,0),white=[1,1,1],mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+// Haze for wide views; its density is zero unless a caller raises it.
+scene.fog=new THREE.FogExp2(0xffffff,0);
+// The shadow map normally hugs the apartment. Wide views spread it over the block.
+let scope=12.5;
+function placeSun(){sun.position.copy(centre).addScaledVector(sunDirection,scope*2+10);}
+function setScope(half=12.5){if(Math.abs(half-scope)<.01)return;scope=half;const frustum=sun.shadow.camera;frustum.left=frustum.bottom=-half;frustum.right=frustum.top=half;frustum.far=half*4+60;frustum.updateProjectionMatrix();sun.shadow.normalBias=.022*Math.max(1,half/16);placeSun();renderer.shadowMap.needsUpdate=true;}
 function setDaylight(light){
-sunDirection.set(...light.sunDirection).normalize();sun.position.copy(centre).addScaledVector(sunDirection,34);
+sunDirection.set(...light.sunDirection).normalize();placeSun();
 sun.color.setRGB(...light.sunColor);sun.intensity=light.sunPower;
 hemisphere.color.setRGB(...mix(light.skyTop,white,.5));hemisphere.groundColor.setRGB(...mix(light.skyHorizon,[.72,.69,.62],.7));hemisphere.intensity=.5*light.ambient;
 scene.environmentIntensity=.55*light.ambient;
-const groundTone=mix(light.skyHorizon,[.9,.9,.87],.55).map(v=>v*(.1+.9*light.ambient));
-sky.update(light.skyTop,light.skyHorizon,groundTone);flatBackground.setRGB(...groundTone,THREE.SRGBColorSpace);
+// The studio floor keeps a warm neutral tone and only dims with the daylight.
+const groundTone=mix(light.skyHorizon,[.88,.87,.83],.8).map(v=>v*(.1+.9*light.ambient));
+sky.update(light.skyTop,light.skyHorizon,groundTone);flatBackground.setRGB(...groundTone,THREE.SRGBColorSpace);scene.fog.color.setRGB(...mix(light.skyHorizon,groundTone,.4),THREE.SRGBColorSpace);
 ground.material.opacity=.08+.16*Math.min(1,light.sunPower/3);
 renderer.toneMappingExposure=light.exposure;renderer.shadowMap.needsUpdate=true;
 }
-return {render,setSize,setQuality,setDaylight,setClipping,sun,get quality(){return quality;}};
+return {render,setSize,setQuality,setDaylight,setClipping,setScope,sun,ground,get quality(){return quality;}};
 }

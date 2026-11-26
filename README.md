@@ -12,7 +12,15 @@ python3 -m http.server 4173 --directory dist
 
 Then open <http://localhost:4173>.
 
-## Using the editor
+## Introduction: the apartment in its building
+
+The page opens on the neighbourhood: terraces of canut buildings on the slopes of the Croix-Rousse, the two white towers across the side street and the Rhône beyond. The camera flies down to the corner building and the apartment is picked out on its façades (second floor: five tall windows on the street and one round the corner). The building then comes apart like an exploded drawing. The roof and the floors above lift away, the floors below drop, the rest of the block folds into the ground, and only the apartment is left in the usual overview.
+
+- It plays once per browser tab. **Skip intro** or Esc ends it; **Views → Play the introduction** replays it. `?intro=0` in the address skips it and `?intro=1` forces it; it does not autoplay when the system asks for reduced motion.
+- The apartment's storey in the building is the real model, so its own windows, and its lamps at night, show through the façade. The other floors repeat its window positions.
+- The surroundings are a schematic massing drawn from aerial views, not a survey: building heights, roofs, the side façade's blind bays, the towers and the river are approximate.
+
+
 
 The model fills the window. A top bar holds the view tools (**Views**, **Walk**, **Cut**, **Display**, **Light**), a side panel holds the editing tabs (**Finishes**, **Furniture**, **Space**, **Plan**), and a camera ball sits at the top right. On phones the panel becomes a bottom sheet: tap a tab to open it, tap it again to close it.
 
@@ -35,7 +43,11 @@ The ball at the top right is a thumbstick: push it and the view keeps orbiting t
 
 ### Light and rendering
 
-**Light** sets the time of day from 07:00 to 22:30, with Morning, Midday, Golden hour and Evening shortcuts. The sun moves from east to west and enters through the real window openings; pendants and the floor lamp come on at dusk. The plan does not give the orientation, so **Windows face** lets you choose which way the window façade looks. **Realistic** rendering adds ambient occlusion, finer shadows and multisampling; **Fast** is lighter and is the default on touch devices. If frames stay slow the app first skips occlusion while moving, then switches to Fast. `?quality=high|standard` and `?hour=15.5` in the address force a setting.
+The sun stands where it really is over the building. **Light** follows the current date and time in Lyon by default (**Now**), or shows any moment you choose: a time slider, a date field with solstice and equinox shortcuts, and Morning, Midday, Golden hour and Evening, which are worked out from that day's sunrise and sunset. The menu states sunrise, sunset and where the sun is. Daylight enters through the real window openings; after sunset the sky darkens and the pendants and floor lamp come on.
+
+The position used is the neighbourhood's, rounded to two decimals, which is ample for the sun. The street façade is taken to face 172° (just east of due south), read from the building on the map; **Light → Orientation** adjusts it, and the camera ball's compass follows. `?date=2026-06-21&time=15:30` in the address pins a moment.
+
+**Realistic** rendering adds ambient occlusion, finer shadows and multisampling; **Fast** is lighter and is the default on touch devices. If frames stay slow the app first skips occlusion while moving, then switches to Fast. `?quality=high|standard` forces a setting.
 
 Rendering is on demand: the picture is redrawn only when something changes. Finishes are procedural and true to scale (12.5 cm parquet boards, veneer on joinery, sawn timber overhead, fine plaster), projected in metres so they stay consistent across split or cut-away walls.
 
@@ -120,6 +132,6 @@ Three counter stools stand on the living-room side of the kitchen peninsula, who
 
 ## Source layout and tests
 
-`dist/app.js` builds the model and wires the interface. Focused modules sit beside it: `render-pipeline.js` (lighting, occlusion, section fill), `daylight.js`, `textures.js`, `surface-materials.js`, `section-cut.js`, `view-joystick.js`, `character-model.js`, `furniture-models.js`, `walkthrough.js` and the design format and sharing modules. `scripts/build.py` inlines everything, including the Three.js add-ons, into the root `index.html`; keep each `import` on one line and one `export` per declaration so it can do so.
+`dist/app.js` builds the model and wires the interface. Focused modules sit beside it: `render-pipeline.js` (lighting, occlusion, section fill), `solar.js` (sun position and civil time), `daylight.js`, `building-intro.js` (the neighbourhood and the opening sequence), `textures.js`, `surface-materials.js`, `section-cut.js`, `view-joystick.js`, `character-model.js`, `furniture-models.js`, `walkthrough.js` and the design format and sharing modules. `scripts/build.py` inlines everything, including the Three.js add-ons, into the root `index.html`; keep each `import` on one line and one `export` per declaration so it can do so.
 
-`npm test` covers the geometry, the design format and sharing, the walkthrough, and the pure logic of the section cut, the camera ball, the daylight model and the scale figure.
+`npm test` covers the geometry, the design format and sharing, the walkthrough, and the pure logic of the section cut, the camera ball, the sun and daylight model, the introduction's timeline and the scale figure.

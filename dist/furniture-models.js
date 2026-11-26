@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {boxProject,cloneProjected} from './surface-materials.js?v=e68a6e50cd69';
+import {boxProject,cloneProjected} from './surface-materials.js?v=f9cd2a6d7d2a';
 
 // Dimensions are metres. Bevels stay within the specified furniture envelope.
 export function softBoxGeometry(w,h,d,r=.03){

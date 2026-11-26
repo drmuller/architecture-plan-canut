@@ -54,7 +54,14 @@ input[type=range]{width:100%;height:22px;margin:0;accent-color:var(--green);curs
 .chip-row button{min-height:32px;padding:0 12px;border:1px solid var(--edge);border-radius:16px;background:#fff;font-size:13px}
 .chip-row button:hover{border-color:var(--green)}
 .chip-row button.active{background:var(--green);border-color:var(--green);color:#fff}
-#day-presets{margin-top:8px}
+#day-presets{margin-bottom:4px}
+.date-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.date-row input{flex:1 1 100%;min-width:0;height:36px;padding:0 8px;border:1px solid var(--edge);border-radius:9px;background:var(--field)}
+.date-row .chip-row{flex:none;flex-wrap:nowrap;gap:4px}
+.date-row .chip-row button{padding:0 8px}
+.menu-details{margin-top:10px}
+.menu-details summary{font-size:13px;color:var(--muted)}
+.menu-details .menu-label{margin-top:8px}
 
 /* Viewport and everything floating over the model. */
 main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 352px;position:relative}
@@ -112,6 +119,16 @@ button.room-label:hover{background:#fff;color:var(--green);box-shadow:0 3px 14px
 #toast{position:absolute;z-index:9;top:16px;left:50%;transform:translateX(-50%);max-width:calc(100% - 300px);padding:10px 16px;border-radius:10px;background:#2c3a30;color:#fff;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;text-align:center}
 .panel-toggle{position:absolute;z-index:4;right:14px;bottom:14px;width:40px;height:40px;display:grid;place-items:center;border:0;border-radius:10px;background:#fff;box-shadow:0 4px 18px rgba(31,46,27,.14)}
 .panel-toggle[aria-pressed=true]{color:var(--green)}
+
+/* Introduction: the scene plays alone while the tools wait. */
+.intro{position:absolute;inset:0;z-index:12;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:18px}
+.intro-card{max-width:min(560px,72%);padding:12px 16px 13px;border-radius:13px;background:rgba(255,255,255,.93);box-shadow:var(--shadow)}
+.intro-eyebrow{display:block;font-size:11px;font-weight:600;letter-spacing:.14em;color:var(--green)}
+.intro-card b{display:block;margin-top:3px;font:600 16px/1.3 'Manrope','DM Sans',system-ui,sans-serif}
+#intro-skip{flex:none;height:40px;padding:0 16px;border:0;border-radius:10px;background:var(--ink);color:#fff;font-weight:600}
+.toolbar,.appbar-actions,#inspector,.camera-cluster{transition:opacity .5s}
+body.intro-playing .toolbar,body.intro-playing .appbar-actions,body.intro-playing #inspector{opacity:.3;pointer-events:none}
+body.intro-playing .camera-cluster,body.intro-playing .hint-chip,body.intro-playing .panel-toggle,body.intro-playing .float-bar,body.intro-playing #labels,body.intro-playing #handles,body.intro-playing .cut-bar{opacity:0;pointer-events:none}
 
 /* Side panel. */
 #inspector{display:flex;flex-direction:column;min-height:0;background:#fff;border-left:1px solid var(--line)}
@@ -275,6 +292,8 @@ footer,.panel-toggle{display:none}
 .cut-track input{flex:1;width:auto}
 .cut-actions span{display:none}
 .walk-panel{left:8px;right:8px;bottom:calc(var(--sheet) + 26px)}
+.intro{padding:10px 10px calc(var(--sheet) + 26px)}
+.intro-card b{font-size:14px}
 .walk-panel small{display:none}
 .walkthrough .float-bar.docked{top:8px;bottom:auto;right:120px}
 .walkthrough .cut-bar{bottom:calc(var(--sheet) + 92px)}
@@ -313,17 +332,17 @@ footer,.panel-toggle{display:none}
 <header class="appbar"><a class="brand" href="#" aria-label="Ivry, Atelier Canut"><span class="mark">i.</span><span class="brand-name">IVRY <small>ATELIER CANUT</small></span></a>
 <nav class="toolbar" aria-label="View tools">
 <div class="menu-anchor"><button class="tool" id="views-button" data-menu="views-menu" aria-haspopup="true" aria-expanded="false"><svg><use href="#i-views"/></svg><span id="views-label">Overview</span><svg class="chevron"><use href="#i-chevron"/></svg></button>
-<div class="menu" id="views-menu" hidden><div class="menu-title">Camera</div><button class="menu-item active" data-view="overview"><span>Overview</span><kbd>Home</kbd></button><button class="menu-item" data-view="living"><span>Living space</span></button><button class="menu-item" data-view="inside"><span>Inside, at eye level</span></button><button class="menu-item" data-view="plan"><span>Floor plan</span></button><div class="menu-title">Rooms</div><div id="room-list"></div></div></div>
+<div class="menu" id="views-menu" hidden><div class="menu-title">Camera</div><button class="menu-item active" data-view="overview"><span>Overview</span><kbd>Home</kbd></button><button class="menu-item" data-view="living"><span>Living space</span></button><button class="menu-item" data-view="inside"><span>Inside, at eye level</span></button><button class="menu-item" data-view="plan"><span>Floor plan</span></button><div class="menu-title">Rooms</div><div id="room-list"></div><div class="menu-title">The building</div><button class="menu-item" id="intro-replay"><span>Play the introduction</span></button></div></div>
 <button class="tool" id="walk-start" aria-pressed="false" title="Visit at eye level"><svg><use href="#i-walk"/></svg><span>Walk</span></button>
 <button class="tool" id="cut-toggle" aria-pressed="false" title="Slice the model facing the current view"><svg><use href="#i-cut"/></svg><span>Cut</span></button>
 <div class="menu-anchor"><button class="tool" id="show-button" data-menu="show-menu" aria-haspopup="true" aria-expanded="false"><svg><use href="#i-eye"/></svg><span>Display</span><svg class="chevron"><use href="#i-chevron"/></svg></button>
 <div class="menu menu-form" id="show-menu" hidden><label class="menu-label" for="wall-mode">Walls</label><select id="wall-mode" data-segmented><option value="auto">Auto</option><option value="low">Low</option><option value="full">Full</option><option value="off">Hidden</option></select><p class="menu-note" id="status">Automatic cutaway</p><label class="menu-label" for="ceiling-mode">Ceilings</label><select id="ceiling-mode" data-segmented><option value="auto">Auto</option><option value="structure">Beams</option><option value="full">All</option><option value="off">Hidden</option></select>
 <label class="switch-row"><span>Furniture &amp; fittings</span><input type="checkbox" id="furniture" checked></label><label class="switch-row"><span>Person</span><input type="checkbox" id="person-visible" checked></label><label class="switch-row"><span>Room labels</span><input type="checkbox" id="room-labels" checked></label><label class="switch-row"><span>Dimension guides</span><input type="checkbox" id="dimensions"></label><label class="switch-row"><span>Highlight ceiling zones</span><input type="checkbox" id="zone-colors"></label></div></div>
 <div class="menu-anchor"><button class="tool" id="light-button" data-menu="light-menu" aria-haspopup="true" aria-expanded="false"><svg><use href="#i-sun"/></svg><span id="light-label">Light</span><svg class="chevron"><use href="#i-chevron"/></svg></button>
-<div class="menu menu-form" id="light-menu" hidden><label class="menu-label range-label" for="day-hour">Time of day <output id="day-hour-value">15:30</output></label><input id="day-hour" type="range" min="7" max="22.5" step="0.25" value="15.5"><div class="chip-row" id="day-presets"><button data-hour="8.5">Morning</button><button data-hour="13">Midday</button><button data-hour="19">Golden hour</button><button data-hour="21.5">Evening</button></div><label class="menu-label" for="facade">Windows face</label><select id="facade" data-segmented><option value="south">South</option><option value="west">West</option><option value="north">North</option><option value="east">East</option></select><p class="menu-note">The true orientation is not on the plan; choose it to see the right sun.</p><label class="menu-label" for="quality">Rendering</label><select id="quality" data-segmented><option value="high">Realistic</option><option value="standard">Fast</option></select><p class="menu-note" id="quality-note">Soft contact shadows and fine sunlight.</p></div></div>
+<div class="menu menu-form" id="light-menu" hidden><div class="chip-row" id="day-presets"><button id="day-now" title="Follow the real date and time in Lyon">Now</button><button data-moment="morning">Morning</button><button data-moment="midday">Midday</button><button data-moment="golden">Golden hour</button><button data-moment="evening">Evening</button></div><label class="menu-label range-label" for="day-hour">Time in Lyon <output id="day-hour-value">12:00</output></label><input id="day-hour" type="range" min="0" max="23.75" step="0.25" value="12"><label class="menu-label" for="day-date">Date</label><div class="date-row"><input id="day-date" type="date"><div class="chip-row" id="day-seasons"><button data-day="03-20" title="Spring equinox">Mar</button><button data-day="06-21" title="Summer solstice">Jun</button><button data-day="09-22" title="Autumn equinox">Sep</button><button data-day="12-21" title="Winter solstice">Dec</button></div></div><p class="menu-note" id="sun-info"></p><details class="menu-details"><summary>Orientation</summary><label class="menu-label range-label" for="facade-bearing">Window façade faces <output id="facade-bearing-value">172° · S</output></label><input id="facade-bearing" type="range" min="0" max="359" step="1" value="172"><p class="menu-note">Read from the building on the map: the street façade looks just east of due south.</p></details><label class="menu-label" for="quality">Rendering</label><select id="quality" data-segmented><option value="high">Realistic</option><option value="standard">Fast</option></select><p class="menu-note" id="quality-note">Soft contact shadows and fine sunlight.</p></div></div>
 </nav>
 <div class="appbar-actions"><button class="icon-button" id="undo-top" disabled title="Undo the last furniture move (Ctrl+Z)" aria-label="Undo the last furniture move"><svg><use href="#i-undo"/></svg></button><button class="icon-button" id="export" title="Save this view as a PNG picture" aria-label="Save this view as a PNG picture"><svg><use href="#i-camera"/></svg></button><button id="save-share" class="primary">Save &amp; share</button></div></header>
-<main><section id="viewport" aria-label="Interactive apartment model"><div id="canvas-wrap"></div><div id="labels"></div><div id="handles"><button id="rotate-handle" class="handle" hidden aria-label="Drag to turn the selected piece" title="Drag to turn · Shift for free rotation"><svg><use href="#i-rotate-right"/></svg></button><button id="cut-handle" class="handle cut-handle" hidden aria-label="Drag to move the cut forward or backward" title="Drag to move the cut"><svg viewBox="0 0 24 24"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M4 12h16"/></svg></button></div><div id="loading">Building your apartment…</div>
+<main><section id="viewport" aria-label="Interactive apartment model"><div id="canvas-wrap"></div><div id="labels"></div><div id="handles"><button id="rotate-handle" class="handle" hidden aria-label="Drag to turn the selected piece" title="Drag to turn · Shift for free rotation"><svg><use href="#i-rotate-right"/></svg></button><button id="cut-handle" class="handle cut-handle" hidden aria-label="Drag to move the cut forward or backward" title="Drag to move the cut"><svg viewBox="0 0 24 24"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M4 12h16"/></svg></button></div><div id="loading">Building your apartment…</div><div id="intro" class="intro" hidden><div class="intro-card"><span class="intro-eyebrow">LYON · CROIX-ROUSSE</span><b id="intro-caption" role="status"></b></div><button id="intro-skip">Skip intro</button></div>
 <div class="camera-cluster"><div id="joystick-mount"></div><div class="zoom" role="group" aria-label="Zoom"><button id="zoom-in" aria-label="Zoom in">+</button><button id="zoom-out" aria-label="Zoom out">−</button><button id="home" aria-label="Back to the overview" title="Back to the overview"><svg><use href="#i-home"/></svg></button></div></div>
 <div id="selection-bar" class="float-bar" role="toolbar" aria-label="Selected furniture" hidden><b id="selection-bar-name"></b><button id="bar-rotate-left" aria-label="Turn 15° anticlockwise" title="Turn 15° anticlockwise (Shift+R)"><svg><use href="#i-rotate-left"/></svg></button><button id="bar-rotate-right" aria-label="Turn 15° clockwise" title="Turn 15° clockwise (R)"><svg><use href="#i-rotate-right"/></svg></button><button id="bar-pose" hidden title="Switch between standing and sitting"><svg><use href="#i-chair"/></svg><span id="bar-pose-label">Sit</span></button><button id="bar-edit" title="Colours and exact position"><svg><use href="#i-palette"/></svg><span>Edit</span></button><button id="bar-reset" aria-label="Put back in its original place" title="Put back in its original place"><svg><use href="#i-reset"/></svg></button><button id="bar-close" aria-label="Deselect" title="Deselect (Esc)"><svg><use href="#i-close"/></svg></button></div>
 <div id="surface-bar" class="float-bar" role="toolbar" aria-label="Selected surfaces" hidden><b id="surface-bar-name"></b><div id="surface-bar-colours" class="quick-colours"></div><label class="quick-custom" title="Choose any colour"><input type="color" id="surface-bar-tint" value="#ffffff" aria-label="Custom colour for the selection"></label><button id="surface-bar-edit" title="All finishes"><svg><use href="#i-palette"/></svg><span>Finishes</span></button><button id="surface-bar-close" aria-label="Deselect" title="Deselect (Esc)"><svg><use href="#i-close"/></svg></button></div>
@@ -59167,40 +59186,262 @@ texture.dispose();texture.needsUpdate=true;}
 return {texture,update};}
 
 return {PLANK_TILE,woodPlanks,woodGrain,stoneMap,metalMap,finishMap,reliefMap,RELIEF_DEPTH,createSky};})();
-const {DAY_START,DAY_END,DEFAULT_HOUR,FACADES,daylightAt,formatHour}=(()=>{// Sun, sky and lamp settings for an hour of the day. Pure numbers, no rendering.
-// Colours are linear-ish 0..1 triplets; angles are radians; +x is east when the
-// window façade (+z) faces south.
-const KEYS=[
-{hour:7,sun:[1,.66,.42],power:1.5,top:[.50,.62,.84],horizon:[1,.84,.72],ambient:.62,lamps:.35,exposure:1.12},
-{hour:9,sun:[1,.90,.76],power:3.1,top:[.40,.60,.90],horizon:[.92,.94,.98],ambient:.88,lamps:0,exposure:1.02},
-{hour:13,sun:[1,.97,.90],power:3.6,top:[.34,.57,.92],horizon:[.88,.93,.99],ambient:1,lamps:0,exposure:1},
-{hour:17,sun:[1,.91,.76],power:3.3,top:[.38,.58,.90],horizon:[.96,.92,.90],ambient:.9,lamps:0,exposure:1.02},
-{hour:19.5,sun:[1,.62,.34],power:2.4,top:[.42,.50,.76],horizon:[1,.72,.50],ambient:.6,lamps:.55,exposure:1.12},
-{hour:21,sun:[.95,.45,.32],power:.3,top:[.14,.19,.38],horizon:[.72,.46,.42],ambient:.30,lamps:1,exposure:1.3},
-{hour:22.5,sun:[.55,.65,1],power:.18,top:[.03,.05,.12],horizon:[.09,.12,.22],ambient:.15,lamps:1,exposure:1.5}
+const {sunPosition,civilOffset,toInstant,localTime,isDate,sunTimes}=(()=>{// Where the sun is for a place and a moment. Pure arithmetic: no clock, no time-zone
+// database. Angles are radians; azimuth is measured clockwise from north.
+const RAD=Math.PI/180,DAY=86400000,HOUR=3600000;
+// Low-precision solar coordinates (about 0.01°), from the Astronomical Almanac.
+function sunPosition(instant,latitude,longitude){
+const d=instant/DAY-10957.5,g=(357.529+.98560028*d)*RAD,L=(280.459+.98564736*d+1.915*Math.sin(g)+.02*Math.sin(2*g))*RAD,tilt=(23.439-.00000036*d)*RAD;
+const rightAscension=Math.atan2(Math.cos(tilt)*Math.sin(L),Math.cos(L)),declination=Math.asin(Math.sin(tilt)*Math.sin(L));
+const hourAngle=((18.697374558+24.06570982441908*d)*15+longitude)*RAD-rightAscension,lat=latitude*RAD;
+const elevation=Math.asin(Math.sin(lat)*Math.sin(declination)+Math.cos(lat)*Math.cos(declination)*Math.cos(hourAngle));
+const azimuth=Math.atan2(-Math.sin(hourAngle),Math.tan(declination)*Math.cos(lat)-Math.sin(lat)*Math.cos(hourAngle));
+return {elevation,azimuth:(azimuth+2*Math.PI)%(2*Math.PI)};
+}
+// Central European civil time: UTC+1, or UTC+2 from the last Sunday of March to the
+// last Sunday of October (both changes at 01:00 UTC).
+function lastSunday(year,month){const last=new Date(Date.UTC(year,month+1,0));return last.getUTCDate()-last.getUTCDay();}
+function civilOffset(instant){const year=new Date(instant).getUTCFullYear();return instant>=Date.UTC(year,2,lastSunday(year,2),1)&&instant<Date.UTC(year,9,lastSunday(year,9),1)?2:1;}
+// A local calendar date ('YYYY-MM-DD') and minutes after midnight, as an instant.
+function toInstant(date,minutes){const [year,month,day]=date.split('-').map(Number),naive=Date.UTC(year,month-1,day)+minutes*60000;return naive-civilOffset(naive-HOUR)*HOUR;}
+// The local date and time of an instant, wherever the viewer's own clock is set.
+function localTime(instant){const local=new Date(instant+civilOffset(instant)*HOUR);return {date:local.toISOString().slice(0,10),minutes:local.getUTCHours()*60+local.getUTCMinutes()};}
+function isDate(text){return typeof text==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(text)&&!Number.isNaN(Date.UTC(...text.split('-').map((n,i)=>Number(n)-(i===1?1:0))))&&localTime(toInstant(text,720)).date===text;}
+// Sunrise, solar noon and sunset of a local date, in minutes after local midnight.
+// Rise and set are null when the sun stays up or down all day.
+function sunTimes(date,latitude,longitude){
+const horizon=-.833*RAD,height=minutes=>sunPosition(toInstant(date,minutes),latitude,longitude).elevation;
+let sunrise=null,sunset=null,noon=0,highest=-Infinity,previous=height(0);
+for(let minutes=4;minutes<=1440;minutes+=4){const now=height(minutes);if(now>highest){highest=now;noon=minutes;}
+if(previous<horizon&&now>=horizon&&sunrise===null)sunrise=minutes-4+4*(horizon-previous)/(now-previous);
+if(previous>=horizon&&now<horizon)sunset=minutes-4+4*(horizon-previous)/(now-previous);previous=now;}
+return {sunrise,noon,sunset};
+}
+
+return {sunPosition,civilOffset,toInstant,localTime,isDate,sunTimes};})();
+const {compassToModel,daylightFor,formatTime,compassPoint}=(()=>{// Light for a given position of the sun. Pure numbers, no rendering.
+// Colours are 0..1 triplets. In the model +z is the way the window façade looks and
+// +x is to its left when seen from the street (east, for a south-facing façade).
+const STOPS=[
+{height:-14,sun:[.5,.6,1],power:.16,top:[.02,.03,.08],horizon:[.05,.07,.14],ambient:.15,lamps:1,exposure:1.5},
+{height:-6,sun:[.6,.64,.95],power:.13,top:[.08,.12,.27],horizon:[.36,.3,.36],ambient:.25,lamps:1,exposure:1.4},
+{height:-1,sun:[1,.52,.32],power:.12,top:[.24,.33,.58],horizon:[.95,.6,.42],ambient:.42,lamps:.8,exposure:1.25},
+{height:2,sun:[1,.58,.32],power:1.3,top:[.36,.46,.72],horizon:[1,.74,.52],ambient:.56,lamps:.4,exposure:1.15},
+{height:8,sun:[1,.77,.54],power:2.5,top:[.42,.56,.84],horizon:[1,.86,.7],ambient:.72,lamps:.08,exposure:1.08},
+{height:18,sun:[1,.9,.76],power:3.1,top:[.38,.58,.9],horizon:[.93,.93,.95],ambient:.9,lamps:0,exposure:1.02},
+{height:40,sun:[1,.97,.9],power:3.6,top:[.33,.56,.92],horizon:[.88,.93,.99],ambient:1,lamps:0,exposure:1}
 ];
-const DAY_START=KEYS[0].hour;
-const DAY_END=KEYS[KEYS.length-1].hour;
-const DEFAULT_HOUR=15.5;
-const FACADES={south:0,west:-Math.PI/2,north:Math.PI,east:Math.PI/2};
-const lerp=(a,b,t)=>a+(b-a)*t,mix=(a,b,t)=>a.map((v,i)=>lerp(v,b[i],t));
-function daylightAt(hour,facade='south'){
-const h=Math.max(DAY_START,Math.min(DAY_END,hour));let i=1;while(i<KEYS.length-1&&KEYS[i].hour<h)i++;
-const a=KEYS[i-1],b=KEYS[i],t=(h-a.hour)/(b.hour-a.hour),s=t*t*(3-2*t);
-// The sun rises in the east at 6 h, culminates at 13 h and sets in the west at 20 h.
-const day=Math.max(0,Math.min(1,(h-6)/14)),elevation=Math.max(.11,Math.sin(day*Math.PI)*1.0),azimuth=day*Math.PI+(FACADES[facade]??0);
-const flat=Math.cos(elevation);
+const MOON=[-.45,.62,.64].map(v=>v/Math.hypot(.45,.62,.64));
+const lerp=(a,b,t)=>a+(b-a)*t,mix=(a,b,t)=>a.map((v,i)=>lerp(v,b[i],t)),DEGREES=180/Math.PI;
+// Model-space direction of a compass bearing (radians) for a façade bearing in degrees.
+function compassToModel(bearing,facadeBearing){const relative=bearing-facadeBearing/DEGREES;return [-Math.sin(relative),Math.cos(relative)];}
+// sun: {azimuth, elevation} in radians, azimuth clockwise from north.
+function daylightFor(sun,facadeBearing=180){
+const height=Math.max(STOPS[0].height,Math.min(STOPS[STOPS.length-1].height,sun.elevation*DEGREES));let i=1;while(i<STOPS.length-1&&STOPS[i].height<height)i++;
+const a=STOPS[i-1],b=STOPS[i],t=(height-a.height)/(b.height-a.height),s=t*t*(3-2*t),night=height<-1;
+// After dark a faint moon stands in front of the windows; a rising sun never rakes below 2°.
+const lift=Math.max(sun.elevation,.035),[x,z]=compassToModel(sun.azimuth,facadeBearing),flat=Math.cos(lift);
 return {
-hour:h,
-sunDirection:[Math.cos(azimuth)*flat,Math.sin(elevation),Math.sin(azimuth)*flat],
+night,sunHeight:sun.elevation*DEGREES,
+sunDirection:night?MOON:[x*flat,Math.sin(lift),z*flat],
 sunColor:mix(a.sun,b.sun,s),sunPower:lerp(a.power,b.power,s),
 skyTop:mix(a.top,b.top,s),skyHorizon:mix(a.horizon,b.horizon,s),
 ambient:lerp(a.ambient,b.ambient,s),lamps:lerp(a.lamps,b.lamps,s),exposure:lerp(a.exposure,b.exposure,s)
 };
 }
-function formatHour(hour){const h=Math.floor(hour),m=Math.round((hour-h)*60);return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+function formatTime(minutes){const total=Math.round(minutes)%1440,h=Math.floor(total/60);return String(h).padStart(2,'0')+':'+String(total-h*60).padStart(2,'0');}
+const POINTS=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+function compassPoint(degrees){return POINTS[Math.round(((degrees%360)+360)%360/22.5)%16];}
 
-return {DAY_START,DAY_END,DEFAULT_HOUR,FACADES,daylightAt,formatHour};})();
+return {compassToModel,daylightFor,formatTime,compassPoint};})();
+const {SITE,INTRO_SECONDS,introStage,introCaption,introCamera,createBuildingIntro}=(()=>{
+// The apartment in its building: a corner block on the slopes of the Croix-Rousse,
+// second floor, long façade to the south and one window round the corner to the east.
+// Position is rounded to the neighbourhood; it only steers the sun.
+const SITE={latitude:45.78,longitude:4.84,facadeBearing:172,storey:4.3,level:2,levels:5,depth:23.1};
+const STOREY=SITE.storey,STREET=-(SITE.level*STOREY+.254);
+
+// ---------- Timeline (pure): fly in, point out the apartment, pull the building apart.
+const INTRO_SECONDS=10.4;
+const ease=t=>t<=0?0:t>=1?1:t*t*(3-2*t),span=(t,from,to)=>ease((t-from)/(to-from));
+function introStage(seconds){const t=Math.max(0,Math.min(INTRO_SECONDS,seconds));return {
+approach:span(t,0,3.4),// from the neighbourhood down to the building
+glow:span(t,2.9,3.8)*(1-span(t,5,5.7)),// the apartment's windows light up
+split:span(t,5,6.5),// floors separate like an exploded drawing
+sink:span(t,5,8.2),// the neighbourhood folds away
+clear:span(t,6.9,8.6),// everything but the apartment leaves
+settle:span(t,8.6,INTRO_SECONDS),// the camera eases into the usual overview
+done:seconds>=INTRO_SECONDS};}
+function introCaption(seconds){return seconds<3?'A corner building on the slopes of the Croix-Rousse':seconds<5.2?'Second floor · five tall windows on the street, one round the corner':seconds<8.6?'Lifting the building away…':'The apartment';}
+// Camera path as orbit coordinates around a moving target, splined through key poses.
+function introCamera(seconds,overview,fit=1){
+const offset=overview.position.map((v,i)=>v-overview.target[i]),radius=Math.hypot(...offset),theta=Math.atan2(offset[0],offset[2]),phi=Math.acos(offset[1]/radius);
+const keys=[[0,14,-5,-6,235*fit,theta-1.25,.84],[3.4,7.5,-1.5,1,82*fit,theta-.12,1],[5,7.2,-.5,2.5,68*fit,theta-.02,1.02],[6.9,7,0,3.6,52*fit,theta,.98],[8.6,...overview.target,radius*1.22,theta,phi],[INTRO_SECONDS,...overview.target,radius,theta,phi]];
+const t=Math.max(0,Math.min(INTRO_SECONDS,seconds));let i=0;while(i<keys.length-2&&keys[i+1][0]<t)i++;
+const a=keys[i],b=keys[i+1],before=keys[i-1],after=keys[i+2],h=b[0]-a[0],u=(t-a[0])/h,u2=u*u,u3=u2*u;
+// Cubic Hermite with Catmull-Rom tangents; the path starts and ends at rest.
+const value=k=>{const ma=before?(b[k]-before[k])/(b[0]-before[0]):0,mb=after?(after[k]-a[k])/(after[0]-a[0]):0;return (2*u3-3*u2+1)*a[k]+(u3-2*u2+u)*h*ma+(-2*u3+3*u2)*b[k]+(u3-u2)*h*mb;};
+const target=[value(1),value(2),value(3)],r=value(4),angle=value(5),polar=value(6);
+return {target,position:[target[0]+r*Math.sin(polar)*Math.sin(angle),target[1]+r*Math.cos(polar),target[2]+r*Math.sin(polar)*Math.cos(angle)]};
+}
+
+// ---------- Drawing façades. One canvas pixel is about 2 cm.
+const PPM=48,WALL='#f1efe5';
+const makeRandom=seed=>()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+function canvasPair(width,height){const make=()=>{const c=document.createElement('canvas');c.width=Math.max(2,Math.round(width*PPM));c.height=Math.max(2,Math.round(height*PPM));return c;};const day=make(),night=make(),lit=night.getContext('2d');lit.fillStyle='#000';lit.fillRect(0,0,night.width,night.height);return {day,night,paint:day.getContext('2d'),lit};}
+function finish(pair){const map=new THREE.CanvasTexture(pair.day),glow=new THREE.CanvasTexture(pair.night);map.colorSpace=glow.colorSpace=THREE.SRGBColorSpace;map.anisotropy=glow.anisotropy=8;return {map,glow};}
+// A tall Lyon window: white frame, six panes and, for French windows, an iron rail.
+function paintWindow(pair,x,base,width,height,{random,blind=false,rail=true}={}){
+const {paint,lit,day}=pair,px=x*PPM,w=width*PPM,h=height*PPM,py=day.height-(base+height)*PPM;
+paint.fillStyle='rgba(60,58,50,.28)';paint.fillRect(px-3,py-3,w+6,h+5);
+if(blind){paint.fillStyle='#e2ded2';paint.fillRect(px,py,w,h);paint.strokeStyle='rgba(90,88,80,.35)';paint.lineWidth=1;for(let y=py+5;y<py+h;y+=5){paint.beginPath();paint.moveTo(px+2,y);paint.lineTo(px+w-2,y);paint.stroke();}paint.fillStyle='rgba(90,88,80,.4)';paint.fillRect(px+w/2-.5,py,1,h);return;}
+const glass=paint.createLinearGradient(0,py,0,py+h);glass.addColorStop(0,'#9fb0b8');glass.addColorStop(.55,'#6f838f');glass.addColorStop(1,'#56666f');paint.fillStyle=glass;paint.fillRect(px,py,w,h);
+// Some panes are curtained.
+if(random&&random()>.55){paint.fillStyle='rgba(244,240,230,.55)';paint.fillRect(px,py,random()>.5?w:w/2,h);}
+paint.strokeStyle='#f6f4ee';paint.lineWidth=3;paint.strokeRect(px+1.5,py+1.5,w-3,h-3);paint.lineWidth=2;paint.beginPath();paint.moveTo(px+w/2,py);paint.lineTo(px+w/2,py+h);for(const f of [.28,.64]){paint.moveTo(px,py+h*f);paint.lineTo(px+w,py+h*f);}paint.stroke();
+paint.fillStyle='#dedacd';paint.fillRect(px-4,py+h,w+8,3);
+if(rail){paint.strokeStyle='#2f3332';paint.lineWidth=1.4;const top=day.height-(base+1)*PPM;paint.beginPath();paint.moveTo(px,top);paint.lineTo(px+w,top);for(let bx=px+2;bx<px+w;bx+=5){paint.moveTo(bx,top);paint.lineTo(bx,py+h);}paint.stroke();}
+if(random&&random()>.62){lit.fillStyle=random()>.3?'#ffd9a2':'#ffe9c8';lit.fillRect(px+2,py+2,w-4,h-4);}
+}
+function paintWall(pair,tone=WALL){const {paint,day}=pair;paint.fillStyle=tone;paint.fillRect(0,0,day.width,day.height);
+// A string course marks each floor.
+paint.fillStyle='rgba(120,116,104,.22)';paint.fillRect(0,day.height-3,day.width,3);paint.fillStyle='rgba(255,255,255,.35)';paint.fillRect(0,0,day.width,2);}
+function paintStreetLevel(pair,length,random){const {paint,day}=pair,H=day.height;paint.fillStyle='#e6e2d6';paint.fillRect(0,0,day.width,H);paint.fillStyle='#cfc9ba';paint.fillRect(0,H-.9*PPM,day.width,.9*PPM);
+const opening=(x,w,h,colour)=>{paint.fillStyle='rgba(60,58,50,.3)';paint.fillRect(x*PPM-3,H-h*PPM-3,w*PPM+6,h*PPM+3);paint.fillStyle=colour;paint.fillRect(x*PPM,H-h*PPM,w*PPM,h*PPM);};
+opening(1,1.25,2.9,'#7a5236');// street door
+for(let x=3.1;x+1.3<length*.5;x+=2.7){opening(x,1.25,2.1,'#7f8f98');paint.strokeStyle='#3a3d3c';paint.lineWidth=1;for(let bx=x*PPM+3;bx<(x+1.25)*PPM;bx+=5){paint.beginPath();paint.moveTo(bx,H-2.1*PPM);paint.lineTo(bx,H-.02*PPM);paint.stroke();}}
+// Shuttered workshops with a little graffiti towards the corner.
+for(let x=length*.5+.4;x+2.6<length;x+=3.2){opening(x,2.5,2.9,'#a9aaa6');paint.strokeStyle='rgba(70,72,70,.5)';paint.lineWidth=1;for(let y=H-2.85*PPM;y<H;y+=4){paint.beginPath();paint.moveTo(x*PPM,y);paint.lineTo((x+2.5)*PPM,y);paint.stroke();}
+paint.lineWidth=3;paint.lineCap='round';for(let i=0;i<5;i++){paint.strokeStyle=['#d9573b','#3f8fb0','#e2b23c','#5c9a5a','#2d2f33'][Math.floor(random()*5)];paint.beginPath();const sx=(x+.2+random()*2)*PPM,sy=H-(.5+random()*1.6)*PPM;paint.moveTo(sx,sy);paint.bezierCurveTo(sx+18,sy-22,sx+30,sy+16,sx+46,sy-8);paint.stroke();}}}
+
+// Hipped tile roof over a rectangle, ridge along its longer side.
+function hipRoof(x0,x1,z0,z1,rise){
+const along=z1-z0>x1-x0,half=(along?x1-x0:z1-z0)/2,cx=(x0+x1)/2,cz=(z0+z1)/2,r1=along?[cx,rise,z0+half]:[x0+half,rise,cz],r2=along?[cx,rise,z1-half]:[x1-half,rise,cz];
+const a=[x0,0,z0],b=[x1,0,z0],c=[x1,0,z1],d=[x0,0,z1],faces=along?[[b,a,r1],[c,b,r1,r2],[d,c,r2],[a,d,r2,r1]]:[[a,d,r1],[b,a,r1,r2],[c,b,r2],[d,c,r2,r1]],points=[],uvs=[];
+const push=(...corners)=>{for(const p of corners){points.push(...p);uvs.push(p[0]/3,p[2]/3);}};
+for(const face of faces){push(face[0],face[1],face[2]);if(face[3])push(face[0],face[2],face[3]);}push(a,b,c,a,c,d);
+const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geometry.computeVertexNormals();return geometry;
+}
+
+function createBuildingIntro({south,east}){
+const group=new THREE.Group(),hero=new THREE.Group(),town=new THREE.Group(),land=new THREE.Group();group.name='Building and neighbourhood';group.add(land,town,hero);
+const random=makeRandom(20261126),cast=mesh=>{mesh.castShadow=mesh.receiveShadow=true;return mesh;},heroMaterials=[],glowing=[];
+const standard=options=>new THREE.MeshStandardMaterial({roughness:.92,...options});
+const heroMaterial=options=>{const m=standard(options);heroMaterials.push(m);return m;};
+const lit=(material,glow)=>{material.emissiveMap=glow;material.emissive=new THREE.Color('#ffffff');material.emissiveIntensity=0;glowing.push(material);return material;};
+
+// ----- The building. Its plan follows the apartment: square to the street, the side
+// street running slightly off the perpendicular.
+const edge=z=>14.26-.3*z/8.673,S=8.888,N=S-SITE.depth,W=-.215,eastLength=Math.hypot(edge(N)-edge(S),SITE.depth),eastAngle=Math.atan2(SITE.depth,edge(N)-edge(S));
+const outline=points=>{const shape=new THREE.Shape();points.forEach(([x,z],i)=>i?shape.lineTo(x,-z):shape.moveTo(x,-z));shape.closePath();return shape;};
+const slab=(points,height,material)=>{const mesh=cast(new THREE.Mesh(new THREE.ExtrudeGeometry(outline(points),{depth:height,bevelEnabled:false}),material));mesh.rotation.x=-Math.PI/2;return mesh;};
+const render=heroMaterial({color:'#e9e6da'}),facadeOffset={polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2};
+const frontWidth=edge(S)-W,eastWindows=[];for(let s=1.66;s<SITE.depth-.8;s+=2.95)eastWindows.push({at:s-east.width/2+(Math.abs(s-(east.at+east.width/2))<.2?0:.2),width:Math.abs(s-(east.at+east.width/2))<.2?east.width:1.3,sill:east.sill,height:east.height,blind:s<east.at-1});
+function facades(streetLevel){const front=canvasPair(frontWidth,STOREY),side=canvasPair(eastLength,STOREY);
+if(streetLevel){paintStreetLevel(front,frontWidth,random);paintStreetLevel(side,eastLength,random);}
+else{paintWall(front);paintWall(side);for(const w of south)paintWindow(front,w.at-W,.254+w.sill,w.width,w.height,{random});for(const w of eastWindows)paintWindow(side,w.at,.254+w.sill,w.width,w.height,{random,blind:w.blind,rail:false});}
+const f=finish(front),e=finish(side);return {front:lit(heroMaterial({map:f.map,...facadeOffset}),f.glow),side:lit(heroMaterial({map:e.map,...facadeOffset}),e.glow)};}
+const typical=facades(false),street=facades(true),footprint=[[W,S],[edge(S),S],[edge(N),N],[W,N]];
+const sidePlane=(material,from,to)=>{const plane=new THREE.Mesh(new THREE.PlaneGeometry(to-from,STOREY),material),uv=plane.geometry.attributes.uv,mid=(from+to)/2,z=S-mid;for(let i=0;i<uv.count;i++)uv.setX(i,(uv.getX(i)*(to-from)+from)/eastLength);plane.position.set(edge(z)+.05,STOREY/2,z);plane.rotation.y=eastAngle;plane.receiveShadow=true;return plane;};
+const storeys=[];
+for(let level=0;level<SITE.levels;level++){const module=new THREE.Group(),skin=level?typical:street;module.position.y=STREET+level*STOREY;module.userData.level=level;hero.add(module);storeys.push(module);
+if(level===SITE.level){
+// The apartment itself stands in for its part of this floor; only the rest is modelled.
+module.add(slab([[W,N],[edge(N),N],[edge(-.215),-.215],[7.29,-.215],[7.29,3.56],[2.5,3.56],[2.5,3.15],[W,3.15]],STOREY,render),sidePlane(skin.side,S+.3,eastLength));continue;}
+module.add(slab(footprint,STOREY,render),sidePlane(skin.side,0,eastLength));
+const front=new THREE.Mesh(new THREE.PlaneGeometry(frontWidth,STOREY),skin.front);front.position.set((W+edge(S))/2,STOREY/2,S+.05);front.receiveShadow=true;module.add(front);}
+// Blind bays near the corner continue the rhythm of the side façade across the apartment.
+const blindPair=canvasPair(1.3,east.height);paintWall(blindPair);paintWindow(blindPair,0,0,1.3,east.height,{blind:true,rail:false});
+const blindMaterial=heroMaterial({map:finish(blindPair).map,...facadeOffset}),decals=new THREE.Group();hero.add(decals);
+for(const w of eastWindows.filter(w=>w.blind)){const z=S-(w.at+w.width/2),decal=new THREE.Mesh(new THREE.PlaneGeometry(1.3,east.height),blindMaterial);decal.position.set(edge(z)+.03,east.sill+east.height/2,z);decal.rotation.y=eastAngle;decals.add(decal);}
+// Roof: terracotta hips, a cornice, the glazed roof-light over the street and chimneys.
+const tilePaint=canvasPair(4,4);tilePaint.paint.fillStyle='#b9603b';tilePaint.paint.fillRect(0,0,192,192);for(let i=0;i<900;i++){tilePaint.paint.fillStyle=random()>.5?'rgba(255,190,140,.16)':'rgba(110,40,20,.16)';tilePaint.paint.fillRect(random()*192,random()*192,2+random()*5,2+random()*4);}
+const tileMap=finish(tilePaint).map;tileMap.wrapS=tileMap.wrapT=THREE.RepeatWrapping;
+const tiles=heroMaterial({map:tileMap,roughness:.95}),roofTop=new THREE.Group();roofTop.position.y=STREET+SITE.levels*STOREY;hero.add(roofTop);
+roofTop.add(cast(new THREE.Mesh(hipRoof(W-.45,edge(N)+.45,N-.45,S+.45,3.2),tiles)));
+const cornice=cast(new THREE.Mesh(new THREE.BoxGeometry(edge(N)-W+.5,.28,SITE.depth+.5),heroMaterial({color:'#f4f2ea'})));cornice.position.set((W+edge(N))/2,-.14,(N+S)/2);roofTop.add(cornice);
+const skylight=new THREE.Mesh(new THREE.BoxGeometry(3.6,.16,2.3),heroMaterial({color:'#b9cbd3',roughness:.12,metalness:.35}));skylight.position.set(6.9,1.62,5.4);skylight.rotation.x=.385;roofTop.add(skylight);
+const stack=heroMaterial({color:'#e7e1d2'});for(const [x,z] of [[3.2,-1],[11.4,-3.2],[10.8,-9.5],[3.6,-11]]){const chimney=cast(new THREE.Mesh(new THREE.BoxGeometry(.55,2.4,1.1),stack));chimney.position.set(x,2.4,z);roofTop.add(chimney);}
+// Markers that pick the apartment out on the façades.
+const marker=new THREE.MeshBasicMaterial({color:'#ffb347',transparent:true,opacity:0,toneMapped:false,depthWrite:false}),wash=new THREE.MeshBasicMaterial({color:'#ffd27a',transparent:true,opacity:0,toneMapped:false,depthWrite:false,blending:THREE.AdditiveBlending}),highlight=new THREE.Group();highlight.visible=false;hero.add(highlight);
+const frame=(width,height,place)=>{const g=new THREE.Group(),t=.2;for(const [w,h,x,y] of [[width+t,t,0,height/2],[width+t,t,0,-height/2],[t,height,-width/2,0],[t,height,width/2,0]]){const bar=new THREE.Mesh(new THREE.BoxGeometry(w,h,.08),marker);bar.position.set(x,y,0);g.add(bar);}place(g);highlight.add(g);};
+frame(frontWidth-.3,4.15,g=>g.position.set((W+edge(S))/2,1.98,S+.12));
+frame(S-.3,4.15,g=>{const z=S/2;g.position.set(edge(z)+.12,1.98,z);g.rotation.y=eastAngle;});
+for(const w of south){const pane=new THREE.Mesh(new THREE.PlaneGeometry(w.width,w.height),wash);pane.position.set(w.at+w.width/2,w.sill+w.height/2,S+.09);highlight.add(pane);}
+{const z=S-(east.at+east.width/2),pane=new THREE.Mesh(new THREE.PlaneGeometry(east.width,east.height),wash);pane.position.set(edge(z)+.09,east.sill+east.height/2,z);pane.rotation.y=eastAngle;highlight.add(pane);}
+
+// ----- The neighbourhood: terraces of old canut buildings, two towers and the Rhône.
+const bayPair=canvasPair(2.7,STOREY);paintWall(bayPair,'#ffffff');paintWindow(bayPair,.75,.42,1.2,3,{rail:true});const bay=finish(bayPair);
+const litBay=canvasPair(2.7*4,STOREY*3);for(let i=0;i<12;i++)if(random()>.7){litBay.lit.fillStyle='#ffd9a2';litBay.lit.fillRect((i%4*2.7+.8)*PPM,litBay.day.height-(Math.floor(i/4)*STOREY+3.35)*PPM,1.1*PPM,2.85*PPM);}
+const bayGlow=finish(litBay).glow;for(const [texture,rx,ry] of [[bay.map,2.7,STOREY],[bayGlow,10.8,STOREY*3]]){texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(1/rx,1/ry);}
+const terrace=lit(boxProject(standard({map:bay.map}),{space:'local'}),bayGlow);
+const towerPair=canvasPair(3,2.8);towerPair.paint.fillStyle='#f4f4f0';towerPair.paint.fillRect(0,0,144,135);towerPair.paint.fillStyle='#7c8a92';towerPair.paint.fillRect(18,38,44,52);towerPair.paint.fillRect(86,38,40,52);towerPair.paint.fillStyle='#deded8';towerPair.paint.fillRect(0,100,144,6);
+const towerMap=finish(towerPair).map;towerMap.wrapS=towerMap.wrapT=THREE.RepeatWrapping;towerMap.repeat.set(1/3,1/2.8);const tower=boxProject(standard({map:towerMap,roughness:.8}),{space:'local'});
+const tones=['#f3efe5','#ebe4d2','#f0dcd2','#eedfb4','#e3dfd6','#f6f3ea'].map(colour=>{const m=cloneProjected(terrace);m.color.set(colour);m.emissive=terrace.emissive;glowing.push(m);return m;});
+const townTiles=standard({map:tileMap,roughness:.95}),flat=standard({color:'#a9a8a2'}),pieces=[];
+// One building: walls, roof and a delay that makes the town fold away outwards.
+function block(x0,x1,z0,z1,height,{material=tones[Math.floor(random()*tones.length)],roof='hip',extras=null}={}){
+const piece=new THREE.Group(),w=x1-x0,d=z1-z0,body=cast(new THREE.Mesh(new THREE.BoxGeometry(w,height,d),material));body.geometry.translate(0,height/2,0);piece.position.set((x0+x1)/2,STREET,(z0+z1)/2);piece.add(body);
+if(roof==='hip'){const top=cast(new THREE.Mesh(hipRoof(-w/2-.4,w/2+.4,-d/2-.4,d/2+.4,Math.min(w,d)*.21),townTiles));top.position.y=height;piece.add(top);}
+else{const cap=cast(new THREE.Mesh(new THREE.BoxGeometry(w+.3,.5,d+.3),flat));cap.position.y=height+.25;piece.add(cap);}
+if(extras)extras(piece,w,d,height);piece.userData.delay=Math.min(.55,Math.hypot(piece.position.x-7,piece.position.z-3)/260);town.add(piece);pieces.push(piece);return piece;
+}
+// Along the street to the west, the modern infill behind, and the block opposite.
+block(-13.4,W-.02,-3.6,S,21.5,{material:tones[1]});block(-27.5,-13.4,-4.2,S,20.6,{material:tones[0]});block(-43,-27.5,-4.2,S,21.5,{material:tones[4]});
+const planted=standard({color:'#587f4c',roughness:1});
+block(-1.5,edge(N)+.3,N-17,N-.05,16.2,{material:standard({color:'#dfe0dc',roughness:.7}),roof:'flat',extras:(piece,w,d,h)=>{for(const [x,z,sx,sz] of [[-3,2,6,4],[4,-3,5,3.5],[-1,-5.5,8,1.6]]){const bed=cast(new THREE.Mesh(new THREE.BoxGeometry(sx,1.1,sz),planted));bed.position.set(x,h+1,z);piece.add(bed);}}});
+block(-1.5,15.6,N-36,N-19,20.4);
+for(const [x0,x1,h] of [[-41,-24,19.5],[-24,-8,21.5],[-8,9.5,18.6]])block(x0,x1,S+9.2,S+21.5,h);
+// The two white towers across the side street.
+const chimneys=(piece,w,d,h)=>{for(let i=0;i<5;i++){const c=cast(new THREE.Mesh(new THREE.BoxGeometry(1.2,2.4,1.2),flat));c.position.set(-w/2+2+i*(w-4)/4,h+1.7,(i%2?.25:-.25)*d);piece.add(c);}};
+block(33,52,-13,19,52,{material:tower,roof:'flat',extras:chimneys});block(74,96,-104,-44,46.4,{material:tower,roof:'flat',extras:chimneys});
+// Streets of terraces filling the slopes, with gaps where cross streets run.
+const reserved=[[-46,58,-52,32],[26,110,-112,24]],clear=(x0,x1,z0,z1)=>!reserved.some(([a,b,c,d])=>x0<b&&x1>a&&z0<d&&z1>c);
+for(const [z0,z1,from,to] of [[-66,-54,-190,14],[-104,-92,-190,40],[-142,-130,-190,60],[-180,-168,-170,70],[-4.2,S,-190,-47],[S+9.2,S+21.5,-190,-45],[44,56,-190,22],[72,84,-190,40],[100,112,-190,58],[128,140,-180,70],[156,168,-160,80],[40,52,64,118],[70,82,74,126],[-150,-138,100,126]]){
+let x=from;while(x<to-9){const width=9+random()*7,height=14.5+Math.round(random()*2)*STOREY*.5+random()*3,lane=((x+width/2+52)%64+64)%64,street=lane<5||lane>59;if(!street&&random()>.07&&clear(x,x+width,z0,z1))block(x,x+width-.05,z0+random()*1.2,z1,height);x+=width;}}
+// Trees on the slope down to the river and in the courtyards.
+const crowns=[];const grove=(cx,cz,rx,rz,count)=>{for(let i=0;i<count;i++){const a=random()*Math.PI*2,r=Math.sqrt(random());crowns.push([cx+Math.cos(a)*r*rx,cz+Math.sin(a)*r*rz,3.2+random()*3.4]);}};
+grove(98,10,22,60,46);grove(126,-70,16,70,30);grove(30,44,10,9,9);grove(-20,-28,9,7,7);grove(140,90,18,50,22);grove(20,-52,6,5,5);
+const trees=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),standard({color:'#ffffff',roughness:1,flatShading:true}),crowns.length),placement=new THREE.Object3D(),leaf=new THREE.Color();
+crowns.forEach(([x,z,size],i)=>{placement.position.set(x,size*.75,z);placement.scale.set(size,size*(.8+random()*.5),size);placement.rotation.y=random()*6;placement.updateMatrix();trees.setMatrixAt(i,placement.matrix);trees.setColorAt(i,leaf.setHSL(.27+random()*.07,.34+random()*.14,.24+random()*.1,THREE.SRGBColorSpace));});
+trees.castShadow=trees.receiveShadow=true;const wood=new THREE.Group();wood.position.y=STREET;wood.add(trees);wood.userData.delay=.3;town.add(wood);pieces.push(wood);
+// Parked cars give the street its scale.
+const cars=new THREE.Group();cars.position.y=STREET;cars.userData.delay=.05;town.add(cars);pieces.push(cars);
+for(const [x,z,turn] of [[-30,10.6,0],[-22,10.6,0],[-9,10.7,0],[2,16.3,0],[-16,16.3,0],[-36,16.3,0],[17.4,-4,1],[17.4,-12,1],[17.5,-27,1],[22.3,-18,1],[22.3,-36,1],[28,24,.7]]){const car=cast(new THREE.Mesh(new THREE.BoxGeometry(4.2,1.35,1.8),standard({color:['#d9d9d6','#2f3438','#a8322c','#3c5f86','#f1f1ee','#787d80'][Math.floor(random()*6)],roughness:.35,metalness:.3})));car.position.set(x,.72,z);car.rotation.y=turn*Math.PI/2;cars.add(car);}
+
+// ----- The ground: pavements, the two streets, a building site and the river.
+const fading=[],ground=options=>{const m=standard({transparent:false,...options});fading.push(m);return m;},flatOn=(mesh,y)=>{mesh.rotation.x=-Math.PI/2;mesh.position.y=STREET+y;mesh.receiveShadow=true;land.add(mesh);return mesh;};
+flatOn(new THREE.Mesh(new THREE.CircleGeometry(900,64),ground({color:'#bdb9ae'})),-.02);
+const asphalt=ground({color:'#87888a'}),strip=(x,z,length,width,turn=0,material=asphalt,y=.02)=>{const road=flatOn(new THREE.Mesh(new THREE.PlaneGeometry(length,width),material),y);road.position.x=x;road.position.z=z;road.rotation.z=turn;return road;};
+strip(-82,S+4.6,216,6.2);strip(19.8,-45,6.2,116,0);strip(19.8,S+4.6,13,12);strip(52,43,96,6.4,-.86);strip(-52,0,6,420);strip(-116,0,6,420);for(const z of [-48,-86,-124,-162,38,64,92,120,148])strip(-60,z,260,5.4);
+const paint=ground({color:'#f2f1ec'});for(let i=0;i<6;i++){strip(14.2+i*.0,S+2.2+i*.95,3.4,.5,0,paint,.04);strip(17.2+i*.95,S+9.4,.5,3.2,0,paint,.04);}
+strip(52,-34,54,46,0,ground({color:'#cdc3a9'}),.03);
+flatOn(new THREE.Mesh(new THREE.PlaneGeometry(92,1400),ground({color:'#46a79f',roughness:.16,metalness:.25})),.05).position.x=212;
+for(let z=-420;z<420;z+=17+random()*8)block(268,268+10+random()*6,z,z+15,16+random()*7);
+
+// Everything is driven from one stage object; see introStage().
+const up=(module,level,stage)=>{module.position.y=STREET+level*STOREY+(level-SITE.level)*(5.4*stage.split+44*stage.clear*stage.clear);};
+function apply(stage,seconds=0,night=0){
+const fade=1-ease(stage.clear*1.15);
+storeys.forEach((module,level)=>{if(level===SITE.level){module.position.z=-(7*stage.split+46*stage.clear*stage.clear);module.position.y=STREET+level*STOREY;}else up(module,level,stage);module.visible=fade>0;});
+roofTop.position.y=STREET+SITE.levels*STOREY+(SITE.levels-SITE.level)*(5.4*stage.split+44*stage.clear*stage.clear);roofTop.visible=fade>0;
+// Opaque programs ignore opacity, so switching to a fade needs a recompile.
+const blend=(material,opacity)=>{if(material.transparent!==opacity<1){material.transparent=opacity<1;material.needsUpdate=true;}material.opacity=opacity;material.depthWrite=opacity>.35;};
+for(const material of heroMaterials)blend(material,fade);
+decals.visible=stage.split<.98&&fade>0;blend(blindMaterial,Math.min(fade,1-stage.split));
+const glow=stage.glow*(.72+.28*Math.sin(seconds*5.2));highlight.visible=glow>.01;marker.opacity=glow;wash.opacity=glow*.5;
+for(const piece of pieces){const gone=ease((stage.sink*1.55-piece.userData.delay)/.6);piece.scale.y=Math.max(.0001,1-gone);piece.visible=gone<.96;}
+const earth=1-span(stage.clear,.15,.95);land.visible=earth>0;for(const material of fading)blend(material,earth);
+for(const material of glowing)material.emissiveIntensity=night*1.1;
+}
+function dispose(){group.traverse(object=>{object.geometry?.dispose();for(const material of object.material?[].concat(object.material):[]){material.map?.dispose();material.emissiveMap?.dispose();material.dispose();}});}
+apply(introStage(0));
+// How far the apartment's own ceilings rise with the floors above, and when they go.
+const ceilingLift=stage=>2.7*stage.split+44*stage.clear*stage.clear;
+return {group,apply,dispose,ceilingLift,street:STREET};
+}
+
+return {SITE,INTRO_SECONDS,introStage,introCaption,introCamera,createBuildingIntro};})();
 const {uprightDirection,cutRange,cutOutline,createSectionCut,dragToTravel}=(()=>{// A section cut is one clipping plane. Its orientation is taken from the camera once,
 // when the cut is created; afterwards it only slides forward or backward along that
 // direction until it is removed.
@@ -59657,7 +59898,7 @@ const sky=createSky(),flatBackground=new THREE.Color('#e9ebe4');scene.background
 
 const hemisphere=new THREE.HemisphereLight(0xffffff,0xb7b1a2,.6);scene.add(hemisphere);
 const sun=new THREE.DirectionalLight(0xfff4e2,3.2),centre=new THREE.Vector3(7,1.5,4.3);
-sun.castShadow=true;Object.assign(sun.shadow.camera,{left:-12.5,right:12.5,top:12.5,bottom:-12.5,near:.5,far:70});sun.shadow.bias=-.0005;sun.shadow.normalBias=.022;
+sun.castShadow=true;Object.assign(sun.shadow.camera,{left:-12.5,right:12.5,top:12.5,bottom:-12.5,near:.5,far:110});sun.shadow.bias=-.0005;sun.shadow.normalBias=.022;
 scene.add(sun,sun.target);sun.target.position.copy(centre);
 const ground=new THREE.Mesh(new THREE.CircleGeometry(120,48),new THREE.ShadowMaterial({opacity:.2}));ground.rotation.x=-Math.PI/2;ground.position.y=-.26;ground.receiveShadow=true;ground.userData.noAO=true;ground.raycast=()=>{};scene.add(ground);
 
@@ -59708,18 +59949,25 @@ if(!composer)buildComposer();
 gtao.camera=camera;gtao.enabled=ao&&camera.isPerspectiveCamera;gtao.updateGtaoMaterial({radius:reach});
 composer.render();
 }
-const sunDirection=new THREE.Vector3(),white=[1,1,1],mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+const sunDirection=new THREE.Vector3(0,1,0),white=[1,1,1],mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+// Haze for wide views; its density is zero unless a caller raises it.
+scene.fog=new THREE.FogExp2(0xffffff,0);
+// The shadow map normally hugs the apartment. Wide views spread it over the block.
+let scope=12.5;
+function placeSun(){sun.position.copy(centre).addScaledVector(sunDirection,scope*2+10);}
+function setScope(half=12.5){if(Math.abs(half-scope)<.01)return;scope=half;const frustum=sun.shadow.camera;frustum.left=frustum.bottom=-half;frustum.right=frustum.top=half;frustum.far=half*4+60;frustum.updateProjectionMatrix();sun.shadow.normalBias=.022*Math.max(1,half/16);placeSun();renderer.shadowMap.needsUpdate=true;}
 function setDaylight(light){
-sunDirection.set(...light.sunDirection).normalize();sun.position.copy(centre).addScaledVector(sunDirection,34);
+sunDirection.set(...light.sunDirection).normalize();placeSun();
 sun.color.setRGB(...light.sunColor);sun.intensity=light.sunPower;
 hemisphere.color.setRGB(...mix(light.skyTop,white,.5));hemisphere.groundColor.setRGB(...mix(light.skyHorizon,[.72,.69,.62],.7));hemisphere.intensity=.5*light.ambient;
 scene.environmentIntensity=.55*light.ambient;
-const groundTone=mix(light.skyHorizon,[.9,.9,.87],.55).map(v=>v*(.1+.9*light.ambient));
-sky.update(light.skyTop,light.skyHorizon,groundTone);flatBackground.setRGB(...groundTone,THREE.SRGBColorSpace);
+// The studio floor keeps a warm neutral tone and only dims with the daylight.
+const groundTone=mix(light.skyHorizon,[.88,.87,.83],.8).map(v=>v*(.1+.9*light.ambient));
+sky.update(light.skyTop,light.skyHorizon,groundTone);flatBackground.setRGB(...groundTone,THREE.SRGBColorSpace);scene.fog.color.setRGB(...mix(light.skyHorizon,groundTone,.4),THREE.SRGBColorSpace);
 ground.material.opacity=.08+.16*Math.min(1,light.sunPower/3);
 renderer.toneMappingExposure=light.exposure;renderer.shadowMap.needsUpdate=true;
 }
-return {render,setSize,setQuality,setDaylight,setClipping,sun,get quality(){return quality;}};
+return {render,setSize,setQuality,setDaylight,setClipping,setScope,sun,ground,get quality(){return quality;}};
 }
 
 return {CAP_LAYER,tagSolids,createPipeline};})();
@@ -60087,28 +60335,44 @@ tagSolids(architecture);tagSolids(furn);
 const modelBounds=new THREE.Box3(new THREE.Vector3(-.22,-.26,-.22),new THREE.Vector3(14.27,4.7,8.9));
 const section=createSectionCut(modelBounds);
 const pipeline=createPipeline({renderer,scene,overlay,section});
-// Local viewing preferences: time of day, compass and rendering quality.
-const view={hour:DEFAULT_HOUR,facade:'south',quality:touchFirst?'standard':'high'};
-try{const saved=JSON.parse(localStorage.getItem('ivry-view-v1'));if(saved){if(Number.isFinite(saved.hour))view.hour=Math.max(7,Math.min(22.5,saved.hour));if(saved.facade in FACADES)view.facade=saved.facade;if(['high','standard'].includes(saved.quality))view.quality=saved.quality;}}catch{}
-if(['high','standard'].includes(query.get('quality')))view.quality=query.get('quality');if(query.get('hour'))view.hour=Math.max(7,Math.min(22.5,Number(query.get('hour'))||DEFAULT_HOUR));
-function saveView(){try{localStorage.setItem('ivry-view-v1',JSON.stringify(view));}catch{}}
-let joystick=null;
+// Local viewing preferences: the moment shown (live, or a chosen date and time in Lyon),
+// the bearing of the window façade and the rendering quality.
+const view={live:true,...localTime(Date.now()),bearing:SITE.facadeBearing,quality:touchFirst?'standard':'high'};
+try{const saved=JSON.parse(localStorage.getItem('ivry-view-v2'));if(saved){if(saved.live===false&&isDate(saved.date)&&Number.isFinite(saved.minutes)){view.live=false;view.date=saved.date;view.minutes=Math.max(0,Math.min(1439,Math.round(saved.minutes)));}if(Number.isFinite(saved.bearing))view.bearing=((saved.bearing%360)+360)%360;if(['high','standard'].includes(saved.quality))view.quality=saved.quality;}}catch{}
+if(['high','standard'].includes(query.get('quality')))view.quality=query.get('quality');
+// ?date=2026-06-21&time=15:30 (or the older ?hour=15.5) pins the moment, e.g. in a shared link.
+const pinnedTime=/^(\d{1,2}):(\d{2})$/.exec(query.get('time')||''),pinnedHour=Number(query.get('hour'));
+if(isDate(query.get('date'))){view.live=false;view.date=query.get('date');}
+if(pinnedTime){view.live=false;view.minutes=Math.min(1439,Number(pinnedTime[1])*60+Number(pinnedTime[2]));}else if(query.get('hour')&&Number.isFinite(pinnedHour)){view.live=false;view.minutes=Math.max(0,Math.min(1439,Math.round(pinnedHour*60)));}
+function saveView(){try{localStorage.setItem('ivry-view-v2',JSON.stringify(view));}catch{}}
+let joystick=null,daylight=null;
+// The sun stands where it really is over the building at that moment.
 function applyDaylight(){
-const light=daylightAt(view.hour,view.facade);pipeline.setDaylight(light);
+if(view.live)Object.assign(view,localTime(Date.now()));
+const sun=sunPosition(toInstant(view.date,view.minutes),SITE.latitude,SITE.longitude),light=daylight=daylightFor(sun,view.bearing);pipeline.setDaylight(light);
 const lit=light.lamps>.02;for(const lamp of [...lampLights,readingLamp.userData.lamp]){lamp.visible=lit;lamp.intensity=(lamp.userData.power||2.6)*light.lamps;}
 furnitureMaterials.glow.emissiveIntensity=light.lamps*3.4;
-$('day-hour').value=view.hour;$('day-hour-value').value=formatHour(view.hour);$('light-label').textContent=formatHour(view.hour);
-document.querySelectorAll('#day-presets button').forEach(b=>b.classList.toggle('active',Math.abs(Number(b.dataset.hour)-view.hour)<.01));
-joystick?.setRotation(FACADES[view.facade]);invalidate();
+const times=sunTimes(view.date,SITE.latitude,SITE.longitude),clock=formatTime(view.minutes),polar=times.sunrise===null||times.sunset===null;
+const moments={morning:polar?540:times.sunrise+90,midday:times.noon,golden:polar?1140:times.sunset-70,evening:polar?1290:Math.min(1439,times.sunset+50)};
+$('day-hour').value=view.minutes/60;$('day-hour-value').value=clock;$('day-date').value=view.date;$('light-label').textContent=view.live?'Now · '+clock:clock;$('day-now').classList.toggle('active',view.live);
+document.querySelectorAll('#day-presets [data-moment]').forEach(b=>{b.dataset.minutes=Math.round(moments[b.dataset.moment]);b.classList.toggle('active',!view.live&&Math.abs(moments[b.dataset.moment]-view.minutes)<8);});
+document.querySelectorAll('#day-seasons [data-day]').forEach(b=>b.classList.toggle('active',view.date.slice(5)===b.dataset.day));
+$('sun-info').textContent=(polar?'':'Sunrise '+formatTime(times.sunrise)+' · sunset '+formatTime(times.sunset)+' · ')+(light.sunHeight>0?'sun '+Math.round(light.sunHeight)+'° high in the '+compassPoint(sun.azimuth*180/Math.PI):'sun below the horizon');
+$('facade-bearing').value=view.bearing;$('facade-bearing-value').value=Math.round(view.bearing)+'° · '+compassPoint(view.bearing);
+joystick?.setRotation(Math.PI-view.bearing*Math.PI/180);invalidate();
 }
+setInterval(()=>{if(view.live&&!document.hidden)applyDaylight();},60000);document.addEventListener('visibilitychange',()=>{if(view.live&&!document.hidden)applyDaylight();});
 
 let activeView='overview',transition=null,spin=null;// Room shortcuts orbit each room from the south-east, like the overview, but close up.
 const rooms=[['kitchen','Kitchen',12.4,2.0,6.5],['living','Living room',11.0,7.0,8.5],['dining','Dining table',12.6,5.8,6],['entry','Entry & bathroom',9.3,1.9,6],['bedroom-1','Bedroom 1',1.5,7.4,7],['bedroom-2','Bedroom 2',4.25,7.5,6.5],['office','Office',7.15,7.5,6.5],['shower','Shower room',3.1,4.35,5]],roomDirection=new THREE.Vector3(12,16,16.8).normalize();
 const presets={...Object.fromEntries(rooms.map(([id,,x,z,d])=>['room-'+id,{p:new THREE.Vector3(x,.8,z).addScaledVector(roomDirection,d).toArray(),t:[x,.8,z]}])),bathroom:{p:[7.0,7.8,5.2],t:[9.45,.6,1.15]},overview:{p:[19,16,21],t:[7,0,4.2]},living:{p:[20,12,17],t:[11.1,1,4.3]},inside:{p:[11.15,1.65,8.1],t:[11.4,1.8,.7]},plan:{p:[7,24,4.34],t:[7,0,4.3]}};
 for(const [id,name] of rooms){const item=document.createElement('button');item.className='menu-item';item.dataset.view='room-'+id;const text=document.createElement('span');text.textContent=name;item.append(text);$('room-list').append(item);}
+const viewFit=()=>{const rect=wrap.getBoundingClientRect();return Math.max(1,1.25/(rect.width/Math.max(1,rect.height)));};
+// A preset's camera position and target, pulled back on narrow screens so the model fits.
+function presetPose(name){const source=presets[name],fit=name==='inside'||name==='plan'?1:viewFit();return {p:source.p.map((v,i)=>source.t[i]+(v-source.t[i])*fit),t:[...source.t]};}
 function markView(name){document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const item=document.querySelector(`.menu-item[data-view="${name}"] span`);$('views-label').textContent=name==='walkthrough'?'Walking':name==='inside'?'Inside':item?item.textContent:'Views';}
 let inspectRestore=null;
-function setView(name,instant=false){if(walkthrough?.active)walkthrough.exit(false);if(inspectRestore&&name!=='bathroom'){const [wallMode,ceilingMode]=inspectRestore;inspectRestore=null;choose('wall-mode',wallMode);choose('ceiling-mode',ceilingMode);}const previous=camera;camera=name==='plan'?orthographic:perspective;if(camera!==previous){camera.position.copy(previous.position);controls.object=camera;}activeView=name;spin=null;$('viewport').classList.toggle('interior',name==='inside');if(camera.isPerspectiveCamera)camera.fov=name==='inside'?62:40;camera.zoom=1;camera.updateProjectionMatrix();const source=presets[name],p={p:[...source.p],t:[...source.t]};const rect=wrap.getBoundingClientRect();if(name!=='inside'&&name!=='plan'){const fit=Math.max(1,1.25/(rect.width/rect.height));p.p=p.p.map((v,i)=>p.t[i]+(v-p.t[i])*fit);}markView(name);if(instant){camera.position.fromArray(p.p);controls.target.fromArray(p.t);controls.update()}else transition={from:camera.position.clone(),to:new THREE.Vector3(...p.p),ft:controls.target.clone(),tt:new THREE.Vector3(...p.t),start:performance.now()};invalidate(false);}
+function setView(name,instant=false){if(walkthrough?.active)walkthrough.exit(false);if(inspectRestore&&name!=='bathroom'){const [wallMode,ceilingMode]=inspectRestore;inspectRestore=null;choose('wall-mode',wallMode);choose('ceiling-mode',ceilingMode);}const previous=camera;camera=name==='plan'?orthographic:perspective;if(camera!==previous){camera.position.copy(previous.position);controls.object=camera;}activeView=name;spin=null;$('viewport').classList.toggle('interior',name==='inside');if(camera.isPerspectiveCamera)camera.fov=name==='inside'?62:40;camera.zoom=1;camera.updateProjectionMatrix();const p=presetPose(name);markView(name);if(instant){camera.position.fromArray(p.p);controls.target.fromArray(p.t);controls.update()}else transition={from:camera.position.clone(),to:new THREE.Vector3(...p.p),ft:controls.target.clone(),tt:new THREE.Vector3(...p.t),start:performance.now()};invalidate(false);}
 setView('overview',true);controls.addEventListener('start',()=>{transition=null;spin=null;});
 document.addEventListener('click',event=>{const item=event.target.closest('[data-view]');if(item){setView(item.dataset.view);closeMenus();}const label=event.target.closest('.room-label[data-room]');if(label)setView('room-'+label.dataset.room);});
 // Keep the orbit centre over the apartment so panning can never lose the model.
@@ -60135,17 +60399,19 @@ function segmentCross(a,b,c,d){const cross=(p,q,r)=>(q[0]-p[0])*(r[1]-p[1])-(q[1
 // Walls ease to their cutaway height and ceilings come and go with the camera height.
 // Returns true while something is still changing so the frame loop keeps drawing.
 function updateCutaway(){let changed=false,mode=walkthrough?.active?'full':$('wall-mode').value;if(section.active&&mode==='auto')mode='full';
+// During the introduction the apartment stays closed until the building has been lifted away.
+const staged=intro?.stage,snap=staged&&staged.approach<.3;if(staged)mode=staged.clear<.6?'full':'auto';
 const elevated=camera.position.y>mainH+.2;const cam2=[camera.position.x,camera.position.z],tar2=[controls.target.x,controls.target.z];
 for(const w of walls){let scale=1;const h=w.lowBox?boxH:w.h+(mainH-4);if(mode==='off')scale=w.isFurniture?1:.001;else if(mode==='low')scale=.035;else if(mode==='auto'){const mx=(w.a[0]+w.b[0])/2,mz=(w.a[1]+w.b[1])/2;const front=w.out&&((camera.position.x-mx)*w.out[0]+(camera.position.z-mz)*w.out[1]>.3);const obstruct=segmentCross(cam2,tar2,w.a,w.b)&&camera.position.y<h+2;if(elevated&&!w.out&&!w.lowBox)scale=.29;if((front&&elevated)||obstruct)scale=.035;if(activeView==='plan'&&elevated)scale=.035;}
-const target=scale*h;if(w.cutHeight!==target||w.shownHeight!==h){w.cutHeight+=(target-w.cutHeight)*.18;if(Math.abs(target-w.cutHeight)<.003)w.cutHeight=target;w.shownHeight=h;applyWallCut(w,h,w.cutHeight);changed=true;}
+const target=scale*h;if(w.cutHeight!==target||w.shownHeight!==h){w.cutHeight+=(target-w.cutHeight)*.18;if(snap||Math.abs(target-w.cutHeight)<.003)w.cutHeight=target;w.shownHeight=h;applyWallCut(w,h,w.cutHeight);changed=true;}
 const visible=w.isFurniture||mode!=='off';if(w.g.visible!==visible){w.g.visible=visible;changed=true;}}
-const cm=walkthrough?.active?'full':$('ceiling-mode').value,y=camera.position.y,underBox=camera.position.x>8.62&&camera.position.x<X(1134)&&camera.position.z<Z(600);
+const cm=staged?(staged.clear<.7?'full':'auto'):walkthrough?.active?'full':$('ceiling-mode').value,y=camera.position.y,underBox=camera.position.x>8.62&&camera.position.x<X(1134)&&camera.position.z<Z(600);
 const showRoof=cm==='full'||(cm==='auto'&&y<mainH-.12),showJoists=cm==='full'||cm==='structure'||(cm==='auto'&&y<mainH),showBeam=cm!=='off'&&activeView!=='plan';
 let showBox=cm==='full'||(cm==='auto'&&(y>boxH+.25||underBox));if(cm==='structure'||(activeView==='plan'&&cm==='auto'))showBox=false;
 for(const [group,show] of [[roof,showRoof],[boxRoof,showBox],[joists,showJoists],[beam,showBeam],[lamps,showJoists&&cm!=='off']])if(group.visible!==show){group.visible=show;changed=true;}
 return changed;
 }
-function showLabels(){const r=wrap.getBoundingClientRect(),walking=walkthrough?.active;for(const a of [...roomLabels,...dimensionLabels]){const isDim=dimensionLabels.includes(a);const show=(isDim?$('dimensions').checked:($('room-labels').checked&&!walking&&camera.position.y>4.5))&&!(section.active&&section.plane.distanceToPoint(a.pos)<0);const p=a.pos.clone().project(camera);a.el.style.display=show&&p.z<1&&p.z>-1?'block':'none';a.el.style.left=(p.x*.5+.5)*r.width+'px';a.el.style.top=(-p.y*.5+.5)*r.height+'px';}}
+function showLabels(){const r=wrap.getBoundingClientRect(),walking=walkthrough?.active;for(const a of [...roomLabels,...dimensionLabels]){const isDim=dimensionLabels.includes(a);const show=!intro&&(isDim?$('dimensions').checked:($('room-labels').checked&&!walking&&camera.position.y>4.5))&&!(section.active&&section.plane.distanceToPoint(a.pos)<0);const p=a.pos.clone().project(camera);a.el.style.display=show&&p.z<1&&p.z>-1?'block':'none';a.el.style.left=(p.x*.5+.5)*r.width+'px';a.el.style.top=(-p.y*.5+.5)*r.height+'px';}}
 function resize(){const r=wrap.getBoundingClientRect();if(r.width<2||r.height<2)return;perspective.aspect=r.width/r.height;perspective.updateProjectionMatrix();const planHalfHeight=Math.max(6.7,8/(r.width/r.height));orthographic.left=-planHalfHeight*r.width/r.height;orthographic.right=planHalfHeight*r.width/r.height;orthographic.top=planHalfHeight;orthographic.bottom=-planHalfHeight;orthographic.updateProjectionMatrix();pipeline.setSize(r.width,r.height,Math.min(devicePixelRatio,view.quality==='high'?2:1.5));invalidate(false);}
 new ResizeObserver(resize).observe(wrap);pipeline.setQuality(view.quality);resize();
 
@@ -60157,10 +60423,11 @@ function drawNow(full=true){showLabels();updateHandles();const distance=walkthro
 function frame(t){requestAnimationFrame(frame);const dt=Math.min(.1,(t-lastFrame)/1000);lastFrame=t;
 if(transition){let p=Math.min((t-transition.start)/850,1);p=1-Math.pow(1-p,3);camera.position.lerpVectors(transition.from,transition.to,p);controls.target.lerpVectors(transition.ft,transition.tt,p);if(p>=1)transition=null}
 if(spin){let p=Math.min((t-spin.start)/520,1);p=p*p*(3-2*p);const next=new THREE.Vector3().setFromSphericalCoords(spin.radius,spin.phi0+(spin.phi1-spin.phi0)*p,spin.theta0+(spin.theta1-spin.theta0)*p);camera.position.copy(controls.target).add(next);if(p>=1)spin=null;}
+if(intro)stepIntro(t);
 const steering=joystick.update(dt,camera.quaternion);
-if(walkthrough?.active)walkthrough.update(t);else{controls.update();keepTargetInside();}
+if(walkthrough?.active)walkthrough.update(t);else if(!intro){controls.update();keepTargetInside();}
 const easing=updateCutaway();if(easing)shadowsDirty=true;
-if(cameraMoved()||easing||steering||renderFrames>0||transition||spin||furnitureDrag){
+if(cameraMoved()||easing||steering||renderFrames>0||transition||spin||furnitureDrag||intro){
 if(renderFrames>0)renderFrames--;
 // Sustained slow frames: first skip occlusion while moving, then fall back to fast rendering.
 if(t-lastChange<120){slowFrames=dt>.05?slowFrames+1:Math.max(0,slowFrames-1);if(slowFrames>20&&occlusionWhileMoving){occlusionWhileMoving=false;slowFrames=0;}else if(slowFrames>90&&view.quality==='high'&&!query.get('quality')){slowFrames=0;setQuality('standard');toast('Switched to fast rendering to keep things smooth');}}
@@ -60226,15 +60493,20 @@ $('surface-bar-edit').onclick=()=>showPanel('materials',true);$('surface-bar-clo
 function choose(id,value){const element=$(id);element.value=value;element.dispatchEvent(new Event('change',{bubbles:true}));}
 $('furniture').onchange=()=>{furn.visible=$('furniture').checked;if(!furn.visible)selectFurniture(null);};$('person-visible').onchange=()=>{person.visible=$('person-visible').checked;if(!person.visible&&selectedFurniture===person)selectFurniture(null);};$('dimensions').onchange=()=>dims.visible=$('dimensions').checked;$('zone-colors').onchange=()=>zones.visible=$('zone-colors').checked;$('laundry-open').onchange=()=>{const open=$('laundry-open').checked;laundryDoor.rotation.y=open?0:-Math.PI/2;const length=Z(354)-Z(290);laundryDoorWall.b=[X(999)+(open?length:0),Z(290)+(open?0:length)];};$('inspect-bathroom').onclick=()=>{inspectRestore??=[$('wall-mode').value,$('ceiling-mode').value];choose('ceiling-mode','off');choose('wall-mode','low');setView('bathroom');};$('wall-mode').onchange=()=>{$('status').textContent={auto:'Near walls lower as you orbit.',full:'Every wall at full height.',low:'All walls lowered to the skirting.',off:'Walls hidden.'}[$('wall-mode').value]};
 function heights(){queueDesignSave();boxH=Number($('box-height').value);mainH=Number($('main-height').value);document.querySelector('.height-card>div').innerHTML='<b>'+boxH.toFixed(2)+' m</b><i>→</i><b>'+mainH.toFixed(2)+' m</b>';$('box-height-value').value=boxH.toFixed(2)+' m';$('main-height-value').value=mainH.toFixed(2)+' m';makeCeilings();applyDaylight();for(const l of roomLabels){if(l.el.firstChild.textContent==='Entrée + SDB'){l.pos.y=boxH+.09;l.el.querySelector('span').textContent='H '+boxH.toFixed(2)+' m'}else if(['Séjour','Cuisine'].includes(l.el.firstChild.textContent))l.el.querySelector('span').textContent=l.el.firstChild.textContent==='Séjour'?'26.49 m² · H '+mainH.toFixed(2)+' m':'12.84 m² · H '+mainH.toFixed(2)+' m'}}$('box-height').oninput=heights;$('main-height').oninput=heights;$('restore-height').onclick=()=>{$('box-height').value=2.9;$('main-height').value=4;heights()};
-$('day-hour').oninput=()=>{view.hour=Number($('day-hour').value);applyDaylight();saveView();};
-document.querySelectorAll('#day-presets button').forEach(b=>b.onclick=()=>{view.hour=Number(b.dataset.hour);applyDaylight();saveView();});
-$('facade').value=view.facade;$('facade').onchange=()=>{view.facade=$('facade').value;applyDaylight();saveView();};
+// Choosing a time or date leaves "now"; the Now chip goes back to following the clock.
+function showMoment(minutes,date=view.date){view.live=false;view.date=date;view.minutes=Math.max(0,Math.min(1439,Math.round(minutes)));applyDaylight();saveView();}
+$('day-hour').oninput=()=>showMoment(Number($('day-hour').value)*60);
+$('day-date').onchange=()=>{if(isDate($('day-date').value))showMoment(view.minutes,$('day-date').value);else applyDaylight();};
+$('day-now').onclick=()=>{view.live=true;applyDaylight();saveView();};
+document.querySelectorAll('#day-presets [data-moment]').forEach(b=>b.onclick=()=>showMoment(Number(b.dataset.minutes)));
+document.querySelectorAll('#day-seasons [data-day]').forEach(b=>b.onclick=()=>showMoment(view.minutes,view.date.slice(0,5)+b.dataset.day));
+$('facade-bearing').oninput=()=>{view.bearing=Number($('facade-bearing').value);applyDaylight();saveView();};
 function setQuality(quality){view.quality=quality;$('quality').value=quality;$('quality').syncSegmented?.();$('quality-note').textContent=quality==='high'?'Soft contact shadows and fine sunlight.':'Lighter on phones and older computers.';occlusionWhileMoving=true;slowFrames=0;pipeline.setQuality(quality);resize();saveView();invalidate();}
 $('quality').value=view.quality;$('quality').onchange=()=>setQuality($('quality').value);
 function zoom(f){if(walkthrough?.active){walkthrough.zoom(f);return;}transition=null;spin=null;if(camera.isOrthographicCamera){camera.zoom=Math.max(.4,Math.min(8,camera.zoom/f));camera.updateProjectionMatrix();return}const d=camera.position.clone().sub(controls.target);d.multiplyScalar(f);d.clampLength(.35,60);camera.position.copy(controls.target).add(d);controls.update()}$('zoom-in').onclick=()=>zoom(.83);$('zoom-out').onclick=()=>zoom(1.2);$('home').onclick=()=>setView('overview');$('export').onclick=()=>{drawNow(true);const a=document.createElement('a');a.href=renderer.domElement.toDataURL('image/png');a.download='ivry-apartment-view.png';a.click();toast('View saved as PNG')};$('enlarge-plan').onclick=()=>$('plan-dialog').showModal();$('close-plan').onclick=()=>$('plan-dialog').close();
 window.addEventListener('keydown',e=>{if(/INPUT|SELECT/.test(document.activeElement.tagName))return;if(e.key==='Home')setView('overview');if(e.key==='+')zoom(.9);if(e.key==='-')zoom(1.1)});
 // Read-only model metadata is useful when inspecting the saved reconstruction.
-window.ivryModel={units:'metres',bedroomWidths:[2.93,2.72,2.76],livingWidth:5.125,roomAreaSum:91.5,mainBeam:{width:.30,depth:.40,source:'inferred section; plan-aligned position'},get heights(){return{box:boxH,main:mainH}},get camera(){return camera.position.toArray()},get materials(){return structuredClone(state)},get furniture(){return movableObjects.map(o=>({id:o.userData.furniture.id,name:o.userData.furniture.label,x:o.position.x,z:o.position.z,angle:THREE.MathUtils.radToDeg(o.rotation.y)}))},get wallCount(){return walls.length},get section(){return section.active?{normal:section.normal.toArray(),offset:section.offset,depth:section.depth,length:section.length,upright:section.upright}:null},get quality(){return view.quality},lookFrom(position,target){if(walkthrough?.active)walkthrough.exit(false);transition=null;spin=null;camera.position.fromArray(position);controls.target.fromArray(target);controls.update();invalidate(false);}};
+window.ivryModel={units:'metres',bedroomWidths:[2.93,2.72,2.76],livingWidth:5.125,roomAreaSum:91.5,mainBeam:{width:.30,depth:.40,source:'inferred section; plan-aligned position'},get heights(){return{box:boxH,main:mainH}},get camera(){return camera.position.toArray()},get materials(){return structuredClone(state)},get furniture(){return movableObjects.map(o=>({id:o.userData.furniture.id,name:o.userData.furniture.label,x:o.position.x,z:o.position.z,angle:THREE.MathUtils.radToDeg(o.rotation.y)}))},get wallCount(){return walls.length},get moment(){return {live:view.live,date:view.date,minutes:view.minutes,bearing:view.bearing,sunHeight:daylight.sunHeight,lamps:daylight.lamps}},get intro(){return intro?(performance.now()-intro.start)/1000:null},introAt(seconds,hold=false){if(!intro)startIntro();intro.start=performance.now()-seconds*1000;intro.hold=hold?seconds:null;invalidate();},get section(){return section.active?{normal:section.normal.toArray(),offset:section.offset,depth:section.depth,length:section.length,upright:section.upright}:null},get quality(){return view.quality},lookFrom(position,target){if(walkthrough?.active)walkthrough.exit(false);transition=null;spin=null;camera.position.fromArray(position);controls.target.fromArray(target);controls.update();invalidate(false);}};
 
 // ---------- Furniture: click to select, drag the selected piece, turn it with the handle.
 const normalizedAngle=r=>((THREE.MathUtils.radToDeg(r)%360)+360)%360;
@@ -60466,6 +60738,34 @@ if(name==='top')phi=.02;else{theta=Math.atan2(direction[0],direction[2]);if(phi<
 const turn=Math.atan2(Math.sin(theta-current.theta),Math.cos(theta-current.theta));transition=null;spin={radius:current.radius,theta0:current.theta,theta1:current.theta+turn,phi0:current.phi,phi1:phi,start:performance.now()};invalidate(false);}
 });
 
+// ---------- Introduction: the neighbourhood, the building, then only the apartment.
+let building=null,intro=null;
+const introPose=seconds=>{const overview=presetPose('overview');return introCamera(seconds,{position:overview.p,target:overview.t},viewFit());};
+function startIntro(){
+if(intro)return;if(walkthrough?.active)walkthrough.exit(false);if(section.active){section.remove();refreshCut();}selectFurniture(null);clearSurfaceSelection();closeMenus();setView('overview',true);
+if(!building){building=createBuildingIntro({south:facadeWindows.map(w=>({at:w.at,width:w.width,sill:w.sill,height:w.height})),east:{at:Z(1049)+.215-2.18,width:1.7,sill:.92,height:2.4}});scene.add(building.group);}
+building.group.visible=true;controls.enabled=false;transition=null;spin=null;perspective.near=1;perspective.far=1600;perspective.updateProjectionMatrix();pipeline.ground.visible=false;
+document.body.classList.add('intro-playing');$('intro').hidden=false;intro={start:performance.now(),stage:introStage(0)};stepIntro(intro.start);
+}
+function stepIntro(now){
+const seconds=intro.hold??(now-intro.start)/1000,stage=intro.stage=introStage(seconds),pose=introPose(seconds);
+camera.position.fromArray(pose.position);controls.target.fromArray(pose.target);camera.lookAt(controls.target);
+building.apply(stage,seconds,daylight.lamps);const lift=building.ceilingLift(stage);for(const g of [roof,joists,lamps])g.position.y=lift;
+// Haze softens the far streets; the shadow map tightens as the town folds away.
+scene.fog.density=.0021/viewFit()*(1-stage.approach*.75)*(1-stage.sink);pipeline.setScope(12.5+105*(1-stage.clear));pipeline.ground.visible=stage.clear>.92;
+$('intro-caption').textContent=introCaption(seconds);
+// Shadows stand still while only the camera travels; they follow once the building opens.
+if(stage.split>0||!intro.shadowed){shadowsDirty=true;intro.shadowed=true;}
+if(stage.done)endIntro();
+}
+function endIntro(){
+if(!intro)return;intro=null;building.apply(introStage(INTRO_SECONDS));building.group.visible=false;for(const g of [roof,joists,lamps])g.position.y=0;
+scene.fog.density=0;pipeline.setScope(12.5);pipeline.ground.visible=true;perspective.near=.04;perspective.far=180;perspective.updateProjectionMatrix();
+controls.enabled=true;document.body.classList.remove('intro-playing');$('intro').hidden=true;setView('overview',true);try{sessionStorage.setItem('ivry-intro','seen');}catch{}invalidate();
+}
+$('intro-skip').onclick=endIntro;$('intro-replay').onclick=()=>{closeMenus();startIntro();};
+window.addEventListener('keydown',e=>{if(intro&&e.key==='Escape'){e.preventDefault();endIntro();}});
+
 // ---------- Shell: menus, segmented choices, side panel and contextual tips.
 function closeMenus(){let closed=false;document.querySelectorAll('.menu').forEach(menu=>{if(!menu.hidden){menu.hidden=true;closed=true;}});document.querySelectorAll('[data-menu]').forEach(b=>b.setAttribute('aria-expanded','false'));return closed;}
 document.querySelectorAll('[data-menu]').forEach(button=>{const menu=$(button.dataset.menu);button.onclick=()=>{const open=menu.hidden;closeMenus();if(open){menu.hidden=false;button.setAttribute('aria-expanded','true');}};});
@@ -60483,6 +60783,9 @@ function updateHint(){const text=walkthrough?.active?'Drag to look around · Cli
 $('hint-close').onclick=()=>{hintsOff=true;try{localStorage.setItem('ivry-hints-off','1');}catch{}updateHint();};
 
 surfaceUI();renderRecentColours();choose('wall-mode',$('wall-mode').value);setPose('stand',false);setQuality(view.quality);applyDaylight();refreshCut();updateHint();showPanel('materials',false);
+// The introduction plays once per browser tab; ?intro=1 forces it and ?intro=0 skips it.
+let introSeen=false;try{introSeen=sessionStorage.getItem('ivry-intro')==='seen';}catch{}
+if(query.get('intro')==='1'||(query.get('intro')!=='0'&&!introSeen&&!matchMedia('(prefers-reduced-motion: reduce)').matches))startIntro();
 requestAnimationFrame(frame);$('loading').hidden=true;
 })();})();</script><script>// One revision-checked shared design. Transport and rendering are injected for testing.
 class SharedDesignSession {

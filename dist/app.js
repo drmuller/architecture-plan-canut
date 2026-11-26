@@ -1,14 +1,16 @@
-import {createFurnitureMaterials,furnitureBuilder,isolateFurnitureMaterials,applyFurnitureColours} from './furniture-models.js?v=e68a6e50cd69';
-import {buildCharacter,createCharacterMaterials,setCharacterPose} from './character-model.js?v=e68a6e50cd69';
-import {nextSurfaceSelection,rememberColour,selectionGeometry} from './surface-editor.js?v=e68a6e50cd69';
-import {configureTiles,boxProject} from './surface-materials.js?v=e68a6e50cd69';
-import {finishMap,reliefMap,RELIEF_DEPTH,PLANK_TILE} from './textures.js?v=e68a6e50cd69';
-import {createPipeline,tagSolids} from './render-pipeline.js?v=e68a6e50cd69';
-import {daylightAt,formatHour,DEFAULT_HOUR,FACADES} from './daylight.js?v=e68a6e50cd69';
-import {createSectionCut,dragToTravel} from './section-cut.js?v=e68a6e50cd69';
-import {createViewJoystick,orbitOffset,compassDirections} from './view-joystick.js?v=e68a6e50cd69';
-import {createWalkthrough,buildWalkPoints} from './walkthrough.js?v=e68a6e50cd69';
-import {DESIGN_FORMAT,MAX_DESIGN_BYTES,validateDesign,designFingerprint,resolveDesignTexture} from './design-format.js?v=e68a6e50cd69';
+import {createFurnitureMaterials,furnitureBuilder,isolateFurnitureMaterials,applyFurnitureColours} from './furniture-models.js?v=f9cd2a6d7d2a';
+import {buildCharacter,createCharacterMaterials,setCharacterPose} from './character-model.js?v=f9cd2a6d7d2a';
+import {nextSurfaceSelection,rememberColour,selectionGeometry} from './surface-editor.js?v=f9cd2a6d7d2a';
+import {configureTiles,boxProject} from './surface-materials.js?v=f9cd2a6d7d2a';
+import {finishMap,reliefMap,RELIEF_DEPTH,PLANK_TILE} from './textures.js?v=f9cd2a6d7d2a';
+import {createPipeline,tagSolids} from './render-pipeline.js?v=f9cd2a6d7d2a';
+import {daylightFor,formatTime,compassPoint} from './daylight.js?v=f9cd2a6d7d2a';
+import {sunPosition,sunTimes,toInstant,localTime,isDate} from './solar.js?v=f9cd2a6d7d2a';
+import {createBuildingIntro,introStage,introCamera,introCaption,INTRO_SECONDS,SITE} from './building-intro.js?v=f9cd2a6d7d2a';
+import {createSectionCut,dragToTravel} from './section-cut.js?v=f9cd2a6d7d2a';
+import {createViewJoystick,orbitOffset,compassDirections} from './view-joystick.js?v=f9cd2a6d7d2a';
+import {createWalkthrough,buildWalkPoints} from './walkthrough.js?v=f9cd2a6d7d2a';
+import {DESIGN_FORMAT,MAX_DESIGN_BYTES,validateDesign,designFingerprint,resolveDesignTexture} from './design-format.js?v=f9cd2a6d7d2a';
 import * as THREE from 'three';
 import {OrbitControls} from './vendor/OrbitControls.js';
 const $=id=>document.getElementById(id), wrap=$('canvas-wrap'),query=new URLSearchParams(location.search);
@@ -308,28 +310,44 @@ tagSolids(architecture);tagSolids(furn);
 const modelBounds=new THREE.Box3(new THREE.Vector3(-.22,-.26,-.22),new THREE.Vector3(14.27,4.7,8.9));
 const section=createSectionCut(modelBounds);
 const pipeline=createPipeline({renderer,scene,overlay,section});
-// Local viewing preferences: time of day, compass and rendering quality.
-const view={hour:DEFAULT_HOUR,facade:'south',quality:touchFirst?'standard':'high'};
-try{const saved=JSON.parse(localStorage.getItem('ivry-view-v1'));if(saved){if(Number.isFinite(saved.hour))view.hour=Math.max(7,Math.min(22.5,saved.hour));if(saved.facade in FACADES)view.facade=saved.facade;if(['high','standard'].includes(saved.quality))view.quality=saved.quality;}}catch{}
-if(['high','standard'].includes(query.get('quality')))view.quality=query.get('quality');if(query.get('hour'))view.hour=Math.max(7,Math.min(22.5,Number(query.get('hour'))||DEFAULT_HOUR));
-function saveView(){try{localStorage.setItem('ivry-view-v1',JSON.stringify(view));}catch{}}
-let joystick=null;
+// Local viewing preferences: the moment shown (live, or a chosen date and time in Lyon),
+// the bearing of the window façade and the rendering quality.
+const view={live:true,...localTime(Date.now()),bearing:SITE.facadeBearing,quality:touchFirst?'standard':'high'};
+try{const saved=JSON.parse(localStorage.getItem('ivry-view-v2'));if(saved){if(saved.live===false&&isDate(saved.date)&&Number.isFinite(saved.minutes)){view.live=false;view.date=saved.date;view.minutes=Math.max(0,Math.min(1439,Math.round(saved.minutes)));}if(Number.isFinite(saved.bearing))view.bearing=((saved.bearing%360)+360)%360;if(['high','standard'].includes(saved.quality))view.quality=saved.quality;}}catch{}
+if(['high','standard'].includes(query.get('quality')))view.quality=query.get('quality');
+// ?date=2026-06-21&time=15:30 (or the older ?hour=15.5) pins the moment, e.g. in a shared link.
+const pinnedTime=/^(\d{1,2}):(\d{2})$/.exec(query.get('time')||''),pinnedHour=Number(query.get('hour'));
+if(isDate(query.get('date'))){view.live=false;view.date=query.get('date');}
+if(pinnedTime){view.live=false;view.minutes=Math.min(1439,Number(pinnedTime[1])*60+Number(pinnedTime[2]));}else if(query.get('hour')&&Number.isFinite(pinnedHour)){view.live=false;view.minutes=Math.max(0,Math.min(1439,Math.round(pinnedHour*60)));}
+function saveView(){try{localStorage.setItem('ivry-view-v2',JSON.stringify(view));}catch{}}
+let joystick=null,daylight=null;
+// The sun stands where it really is over the building at that moment.
 function applyDaylight(){
-const light=daylightAt(view.hour,view.facade);pipeline.setDaylight(light);
+if(view.live)Object.assign(view,localTime(Date.now()));
+const sun=sunPosition(toInstant(view.date,view.minutes),SITE.latitude,SITE.longitude),light=daylight=daylightFor(sun,view.bearing);pipeline.setDaylight(light);
 const lit=light.lamps>.02;for(const lamp of [...lampLights,readingLamp.userData.lamp]){lamp.visible=lit;lamp.intensity=(lamp.userData.power||2.6)*light.lamps;}
 furnitureMaterials.glow.emissiveIntensity=light.lamps*3.4;
-$('day-hour').value=view.hour;$('day-hour-value').value=formatHour(view.hour);$('light-label').textContent=formatHour(view.hour);
-document.querySelectorAll('#day-presets button').forEach(b=>b.classList.toggle('active',Math.abs(Number(b.dataset.hour)-view.hour)<.01));
-joystick?.setRotation(FACADES[view.facade]);invalidate();
+const times=sunTimes(view.date,SITE.latitude,SITE.longitude),clock=formatTime(view.minutes),polar=times.sunrise===null||times.sunset===null;
+const moments={morning:polar?540:times.sunrise+90,midday:times.noon,golden:polar?1140:times.sunset-70,evening:polar?1290:Math.min(1439,times.sunset+50)};
+$('day-hour').value=view.minutes/60;$('day-hour-value').value=clock;$('day-date').value=view.date;$('light-label').textContent=view.live?'Now · '+clock:clock;$('day-now').classList.toggle('active',view.live);
+document.querySelectorAll('#day-presets [data-moment]').forEach(b=>{b.dataset.minutes=Math.round(moments[b.dataset.moment]);b.classList.toggle('active',!view.live&&Math.abs(moments[b.dataset.moment]-view.minutes)<8);});
+document.querySelectorAll('#day-seasons [data-day]').forEach(b=>b.classList.toggle('active',view.date.slice(5)===b.dataset.day));
+$('sun-info').textContent=(polar?'':'Sunrise '+formatTime(times.sunrise)+' · sunset '+formatTime(times.sunset)+' · ')+(light.sunHeight>0?'sun '+Math.round(light.sunHeight)+'° high in the '+compassPoint(sun.azimuth*180/Math.PI):'sun below the horizon');
+$('facade-bearing').value=view.bearing;$('facade-bearing-value').value=Math.round(view.bearing)+'° · '+compassPoint(view.bearing);
+joystick?.setRotation(Math.PI-view.bearing*Math.PI/180);invalidate();
 }
+setInterval(()=>{if(view.live&&!document.hidden)applyDaylight();},60000);document.addEventListener('visibilitychange',()=>{if(view.live&&!document.hidden)applyDaylight();});
 
 let activeView='overview',transition=null,spin=null;// Room shortcuts orbit each room from the south-east, like the overview, but close up.
 const rooms=[['kitchen','Kitchen',12.4,2.0,6.5],['living','Living room',11.0,7.0,8.5],['dining','Dining table',12.6,5.8,6],['entry','Entry & bathroom',9.3,1.9,6],['bedroom-1','Bedroom 1',1.5,7.4,7],['bedroom-2','Bedroom 2',4.25,7.5,6.5],['office','Office',7.15,7.5,6.5],['shower','Shower room',3.1,4.35,5]],roomDirection=new THREE.Vector3(12,16,16.8).normalize();
 const presets={...Object.fromEntries(rooms.map(([id,,x,z,d])=>['room-'+id,{p:new THREE.Vector3(x,.8,z).addScaledVector(roomDirection,d).toArray(),t:[x,.8,z]}])),bathroom:{p:[7.0,7.8,5.2],t:[9.45,.6,1.15]},overview:{p:[19,16,21],t:[7,0,4.2]},living:{p:[20,12,17],t:[11.1,1,4.3]},inside:{p:[11.15,1.65,8.1],t:[11.4,1.8,.7]},plan:{p:[7,24,4.34],t:[7,0,4.3]}};
 for(const [id,name] of rooms){const item=document.createElement('button');item.className='menu-item';item.dataset.view='room-'+id;const text=document.createElement('span');text.textContent=name;item.append(text);$('room-list').append(item);}
+const viewFit=()=>{const rect=wrap.getBoundingClientRect();return Math.max(1,1.25/(rect.width/Math.max(1,rect.height)));};
+// A preset's camera position and target, pulled back on narrow screens so the model fits.
+function presetPose(name){const source=presets[name],fit=name==='inside'||name==='plan'?1:viewFit();return {p:source.p.map((v,i)=>source.t[i]+(v-source.t[i])*fit),t:[...source.t]};}
 function markView(name){document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const item=document.querySelector(`.menu-item[data-view="${name}"] span`);$('views-label').textContent=name==='walkthrough'?'Walking':name==='inside'?'Inside':item?item.textContent:'Views';}
 let inspectRestore=null;
-function setView(name,instant=false){if(walkthrough?.active)walkthrough.exit(false);if(inspectRestore&&name!=='bathroom'){const [wallMode,ceilingMode]=inspectRestore;inspectRestore=null;choose('wall-mode',wallMode);choose('ceiling-mode',ceilingMode);}const previous=camera;camera=name==='plan'?orthographic:perspective;if(camera!==previous){camera.position.copy(previous.position);controls.object=camera;}activeView=name;spin=null;$('viewport').classList.toggle('interior',name==='inside');if(camera.isPerspectiveCamera)camera.fov=name==='inside'?62:40;camera.zoom=1;camera.updateProjectionMatrix();const source=presets[name],p={p:[...source.p],t:[...source.t]};const rect=wrap.getBoundingClientRect();if(name!=='inside'&&name!=='plan'){const fit=Math.max(1,1.25/(rect.width/rect.height));p.p=p.p.map((v,i)=>p.t[i]+(v-p.t[i])*fit);}markView(name);if(instant){camera.position.fromArray(p.p);controls.target.fromArray(p.t);controls.update()}else transition={from:camera.position.clone(),to:new THREE.Vector3(...p.p),ft:controls.target.clone(),tt:new THREE.Vector3(...p.t),start:performance.now()};invalidate(false);}
+function setView(name,instant=false){if(walkthrough?.active)walkthrough.exit(false);if(inspectRestore&&name!=='bathroom'){const [wallMode,ceilingMode]=inspectRestore;inspectRestore=null;choose('wall-mode',wallMode);choose('ceiling-mode',ceilingMode);}const previous=camera;camera=name==='plan'?orthographic:perspective;if(camera!==previous){camera.position.copy(previous.position);controls.object=camera;}activeView=name;spin=null;$('viewport').classList.toggle('interior',name==='inside');if(camera.isPerspectiveCamera)camera.fov=name==='inside'?62:40;camera.zoom=1;camera.updateProjectionMatrix();const p=presetPose(name);markView(name);if(instant){camera.position.fromArray(p.p);controls.target.fromArray(p.t);controls.update()}else transition={from:camera.position.clone(),to:new THREE.Vector3(...p.p),ft:controls.target.clone(),tt:new THREE.Vector3(...p.t),start:performance.now()};invalidate(false);}
 setView('overview',true);controls.addEventListener('start',()=>{transition=null;spin=null;});
 document.addEventListener('click',event=>{const item=event.target.closest('[data-view]');if(item){setView(item.dataset.view);closeMenus();}const label=event.target.closest('.room-label[data-room]');if(label)setView('room-'+label.dataset.room);});
 // Keep the orbit centre over the apartment so panning can never lose the model.
@@ -356,17 +374,19 @@ function segmentCross(a,b,c,d){const cross=(p,q,r)=>(q[0]-p[0])*(r[1]-p[1])-(q[1
 // Walls ease to their cutaway height and ceilings come and go with the camera height.
 // Returns true while something is still changing so the frame loop keeps drawing.
 function updateCutaway(){let changed=false,mode=walkthrough?.active?'full':$('wall-mode').value;if(section.active&&mode==='auto')mode='full';
+// During the introduction the apartment stays closed until the building has been lifted away.
+const staged=intro?.stage,snap=staged&&staged.approach<.3;if(staged)mode=staged.clear<.6?'full':'auto';
 const elevated=camera.position.y>mainH+.2;const cam2=[camera.position.x,camera.position.z],tar2=[controls.target.x,controls.target.z];
 for(const w of walls){let scale=1;const h=w.lowBox?boxH:w.h+(mainH-4);if(mode==='off')scale=w.isFurniture?1:.001;else if(mode==='low')scale=.035;else if(mode==='auto'){const mx=(w.a[0]+w.b[0])/2,mz=(w.a[1]+w.b[1])/2;const front=w.out&&((camera.position.x-mx)*w.out[0]+(camera.position.z-mz)*w.out[1]>.3);const obstruct=segmentCross(cam2,tar2,w.a,w.b)&&camera.position.y<h+2;if(elevated&&!w.out&&!w.lowBox)scale=.29;if((front&&elevated)||obstruct)scale=.035;if(activeView==='plan'&&elevated)scale=.035;}
-const target=scale*h;if(w.cutHeight!==target||w.shownHeight!==h){w.cutHeight+=(target-w.cutHeight)*.18;if(Math.abs(target-w.cutHeight)<.003)w.cutHeight=target;w.shownHeight=h;applyWallCut(w,h,w.cutHeight);changed=true;}
+const target=scale*h;if(w.cutHeight!==target||w.shownHeight!==h){w.cutHeight+=(target-w.cutHeight)*.18;if(snap||Math.abs(target-w.cutHeight)<.003)w.cutHeight=target;w.shownHeight=h;applyWallCut(w,h,w.cutHeight);changed=true;}
 const visible=w.isFurniture||mode!=='off';if(w.g.visible!==visible){w.g.visible=visible;changed=true;}}
-const cm=walkthrough?.active?'full':$('ceiling-mode').value,y=camera.position.y,underBox=camera.position.x>8.62&&camera.position.x<X(1134)&&camera.position.z<Z(600);
+const cm=staged?(staged.clear<.7?'full':'auto'):walkthrough?.active?'full':$('ceiling-mode').value,y=camera.position.y,underBox=camera.position.x>8.62&&camera.position.x<X(1134)&&camera.position.z<Z(600);
 const showRoof=cm==='full'||(cm==='auto'&&y<mainH-.12),showJoists=cm==='full'||cm==='structure'||(cm==='auto'&&y<mainH),showBeam=cm!=='off'&&activeView!=='plan';
 let showBox=cm==='full'||(cm==='auto'&&(y>boxH+.25||underBox));if(cm==='structure'||(activeView==='plan'&&cm==='auto'))showBox=false;
 for(const [group,show] of [[roof,showRoof],[boxRoof,showBox],[joists,showJoists],[beam,showBeam],[lamps,showJoists&&cm!=='off']])if(group.visible!==show){group.visible=show;changed=true;}
 return changed;
 }
-function showLabels(){const r=wrap.getBoundingClientRect(),walking=walkthrough?.active;for(const a of [...roomLabels,...dimensionLabels]){const isDim=dimensionLabels.includes(a);const show=(isDim?$('dimensions').checked:($('room-labels').checked&&!walking&&camera.position.y>4.5))&&!(section.active&&section.plane.distanceToPoint(a.pos)<0);const p=a.pos.clone().project(camera);a.el.style.display=show&&p.z<1&&p.z>-1?'block':'none';a.el.style.left=(p.x*.5+.5)*r.width+'px';a.el.style.top=(-p.y*.5+.5)*r.height+'px';}}
+function showLabels(){const r=wrap.getBoundingClientRect(),walking=walkthrough?.active;for(const a of [...roomLabels,...dimensionLabels]){const isDim=dimensionLabels.includes(a);const show=!intro&&(isDim?$('dimensions').checked:($('room-labels').checked&&!walking&&camera.position.y>4.5))&&!(section.active&&section.plane.distanceToPoint(a.pos)<0);const p=a.pos.clone().project(camera);a.el.style.display=show&&p.z<1&&p.z>-1?'block':'none';a.el.style.left=(p.x*.5+.5)*r.width+'px';a.el.style.top=(-p.y*.5+.5)*r.height+'px';}}
 function resize(){const r=wrap.getBoundingClientRect();if(r.width<2||r.height<2)return;perspective.aspect=r.width/r.height;perspective.updateProjectionMatrix();const planHalfHeight=Math.max(6.7,8/(r.width/r.height));orthographic.left=-planHalfHeight*r.width/r.height;orthographic.right=planHalfHeight*r.width/r.height;orthographic.top=planHalfHeight;orthographic.bottom=-planHalfHeight;orthographic.updateProjectionMatrix();pipeline.setSize(r.width,r.height,Math.min(devicePixelRatio,view.quality==='high'?2:1.5));invalidate(false);}
 new ResizeObserver(resize).observe(wrap);pipeline.setQuality(view.quality);resize();
 
@@ -378,10 +398,11 @@ function drawNow(full=true){showLabels();updateHandles();const distance=walkthro
 function frame(t){requestAnimationFrame(frame);const dt=Math.min(.1,(t-lastFrame)/1000);lastFrame=t;
 if(transition){let p=Math.min((t-transition.start)/850,1);p=1-Math.pow(1-p,3);camera.position.lerpVectors(transition.from,transition.to,p);controls.target.lerpVectors(transition.ft,transition.tt,p);if(p>=1)transition=null}
 if(spin){let p=Math.min((t-spin.start)/520,1);p=p*p*(3-2*p);const next=new THREE.Vector3().setFromSphericalCoords(spin.radius,spin.phi0+(spin.phi1-spin.phi0)*p,spin.theta0+(spin.theta1-spin.theta0)*p);camera.position.copy(controls.target).add(next);if(p>=1)spin=null;}
+if(intro)stepIntro(t);
 const steering=joystick.update(dt,camera.quaternion);
-if(walkthrough?.active)walkthrough.update(t);else{controls.update();keepTargetInside();}
+if(walkthrough?.active)walkthrough.update(t);else if(!intro){controls.update();keepTargetInside();}
 const easing=updateCutaway();if(easing)shadowsDirty=true;
-if(cameraMoved()||easing||steering||renderFrames>0||transition||spin||furnitureDrag){
+if(cameraMoved()||easing||steering||renderFrames>0||transition||spin||furnitureDrag||intro){
 if(renderFrames>0)renderFrames--;
 // Sustained slow frames: first skip occlusion while moving, then fall back to fast rendering.
 if(t-lastChange<120){slowFrames=dt>.05?slowFrames+1:Math.max(0,slowFrames-1);if(slowFrames>20&&occlusionWhileMoving){occlusionWhileMoving=false;slowFrames=0;}else if(slowFrames>90&&view.quality==='high'&&!query.get('quality')){slowFrames=0;setQuality('standard');toast('Switched to fast rendering to keep things smooth');}}
@@ -447,15 +468,20 @@ $('surface-bar-edit').onclick=()=>showPanel('materials',true);$('surface-bar-clo
 function choose(id,value){const element=$(id);element.value=value;element.dispatchEvent(new Event('change',{bubbles:true}));}
 $('furniture').onchange=()=>{furn.visible=$('furniture').checked;if(!furn.visible)selectFurniture(null);};$('person-visible').onchange=()=>{person.visible=$('person-visible').checked;if(!person.visible&&selectedFurniture===person)selectFurniture(null);};$('dimensions').onchange=()=>dims.visible=$('dimensions').checked;$('zone-colors').onchange=()=>zones.visible=$('zone-colors').checked;$('laundry-open').onchange=()=>{const open=$('laundry-open').checked;laundryDoor.rotation.y=open?0:-Math.PI/2;const length=Z(354)-Z(290);laundryDoorWall.b=[X(999)+(open?length:0),Z(290)+(open?0:length)];};$('inspect-bathroom').onclick=()=>{inspectRestore??=[$('wall-mode').value,$('ceiling-mode').value];choose('ceiling-mode','off');choose('wall-mode','low');setView('bathroom');};$('wall-mode').onchange=()=>{$('status').textContent={auto:'Near walls lower as you orbit.',full:'Every wall at full height.',low:'All walls lowered to the skirting.',off:'Walls hidden.'}[$('wall-mode').value]};
 function heights(){queueDesignSave();boxH=Number($('box-height').value);mainH=Number($('main-height').value);document.querySelector('.height-card>div').innerHTML='<b>'+boxH.toFixed(2)+' m</b><i>→</i><b>'+mainH.toFixed(2)+' m</b>';$('box-height-value').value=boxH.toFixed(2)+' m';$('main-height-value').value=mainH.toFixed(2)+' m';makeCeilings();applyDaylight();for(const l of roomLabels){if(l.el.firstChild.textContent==='Entrée + SDB'){l.pos.y=boxH+.09;l.el.querySelector('span').textContent='H '+boxH.toFixed(2)+' m'}else if(['Séjour','Cuisine'].includes(l.el.firstChild.textContent))l.el.querySelector('span').textContent=l.el.firstChild.textContent==='Séjour'?'26.49 m² · H '+mainH.toFixed(2)+' m':'12.84 m² · H '+mainH.toFixed(2)+' m'}}$('box-height').oninput=heights;$('main-height').oninput=heights;$('restore-height').onclick=()=>{$('box-height').value=2.9;$('main-height').value=4;heights()};
-$('day-hour').oninput=()=>{view.hour=Number($('day-hour').value);applyDaylight();saveView();};
-document.querySelectorAll('#day-presets button').forEach(b=>b.onclick=()=>{view.hour=Number(b.dataset.hour);applyDaylight();saveView();});
-$('facade').value=view.facade;$('facade').onchange=()=>{view.facade=$('facade').value;applyDaylight();saveView();};
+// Choosing a time or date leaves "now"; the Now chip goes back to following the clock.
+function showMoment(minutes,date=view.date){view.live=false;view.date=date;view.minutes=Math.max(0,Math.min(1439,Math.round(minutes)));applyDaylight();saveView();}
+$('day-hour').oninput=()=>showMoment(Number($('day-hour').value)*60);
+$('day-date').onchange=()=>{if(isDate($('day-date').value))showMoment(view.minutes,$('day-date').value);else applyDaylight();};
+$('day-now').onclick=()=>{view.live=true;applyDaylight();saveView();};
+document.querySelectorAll('#day-presets [data-moment]').forEach(b=>b.onclick=()=>showMoment(Number(b.dataset.minutes)));
+document.querySelectorAll('#day-seasons [data-day]').forEach(b=>b.onclick=()=>showMoment(view.minutes,view.date.slice(0,5)+b.dataset.day));
+$('facade-bearing').oninput=()=>{view.bearing=Number($('facade-bearing').value);applyDaylight();saveView();};
 function setQuality(quality){view.quality=quality;$('quality').value=quality;$('quality').syncSegmented?.();$('quality-note').textContent=quality==='high'?'Soft contact shadows and fine sunlight.':'Lighter on phones and older computers.';occlusionWhileMoving=true;slowFrames=0;pipeline.setQuality(quality);resize();saveView();invalidate();}
 $('quality').value=view.quality;$('quality').onchange=()=>setQuality($('quality').value);
 function zoom(f){if(walkthrough?.active){walkthrough.zoom(f);return;}transition=null;spin=null;if(camera.isOrthographicCamera){camera.zoom=Math.max(.4,Math.min(8,camera.zoom/f));camera.updateProjectionMatrix();return}const d=camera.position.clone().sub(controls.target);d.multiplyScalar(f);d.clampLength(.35,60);camera.position.copy(controls.target).add(d);controls.update()}$('zoom-in').onclick=()=>zoom(.83);$('zoom-out').onclick=()=>zoom(1.2);$('home').onclick=()=>setView('overview');$('export').onclick=()=>{drawNow(true);const a=document.createElement('a');a.href=renderer.domElement.toDataURL('image/png');a.download='ivry-apartment-view.png';a.click();toast('View saved as PNG')};$('enlarge-plan').onclick=()=>$('plan-dialog').showModal();$('close-plan').onclick=()=>$('plan-dialog').close();
 window.addEventListener('keydown',e=>{if(/INPUT|SELECT/.test(document.activeElement.tagName))return;if(e.key==='Home')setView('overview');if(e.key==='+')zoom(.9);if(e.key==='-')zoom(1.1)});
 // Read-only model metadata is useful when inspecting the saved reconstruction.
-window.ivryModel={units:'metres',bedroomWidths:[2.93,2.72,2.76],livingWidth:5.125,roomAreaSum:91.5,mainBeam:{width:.30,depth:.40,source:'inferred section; plan-aligned position'},get heights(){return{box:boxH,main:mainH}},get camera(){return camera.position.toArray()},get materials(){return structuredClone(state)},get furniture(){return movableObjects.map(o=>({id:o.userData.furniture.id,name:o.userData.furniture.label,x:o.position.x,z:o.position.z,angle:THREE.MathUtils.radToDeg(o.rotation.y)}))},get wallCount(){return walls.length},get section(){return section.active?{normal:section.normal.toArray(),offset:section.offset,depth:section.depth,length:section.length,upright:section.upright}:null},get quality(){return view.quality},lookFrom(position,target){if(walkthrough?.active)walkthrough.exit(false);transition=null;spin=null;camera.position.fromArray(position);controls.target.fromArray(target);controls.update();invalidate(false);}};
+window.ivryModel={units:'metres',bedroomWidths:[2.93,2.72,2.76],livingWidth:5.125,roomAreaSum:91.5,mainBeam:{width:.30,depth:.40,source:'inferred section; plan-aligned position'},get heights(){return{box:boxH,main:mainH}},get camera(){return camera.position.toArray()},get materials(){return structuredClone(state)},get furniture(){return movableObjects.map(o=>({id:o.userData.furniture.id,name:o.userData.furniture.label,x:o.position.x,z:o.position.z,angle:THREE.MathUtils.radToDeg(o.rotation.y)}))},get wallCount(){return walls.length},get moment(){return {live:view.live,date:view.date,minutes:view.minutes,bearing:view.bearing,sunHeight:daylight.sunHeight,lamps:daylight.lamps}},get intro(){return intro?(performance.now()-intro.start)/1000:null},introAt(seconds,hold=false){if(!intro)startIntro();intro.start=performance.now()-seconds*1000;intro.hold=hold?seconds:null;invalidate();},get section(){return section.active?{normal:section.normal.toArray(),offset:section.offset,depth:section.depth,length:section.length,upright:section.upright}:null},get quality(){return view.quality},lookFrom(position,target){if(walkthrough?.active)walkthrough.exit(false);transition=null;spin=null;camera.position.fromArray(position);controls.target.fromArray(target);controls.update();invalidate(false);}};
 
 // ---------- Furniture: click to select, drag the selected piece, turn it with the handle.
 const normalizedAngle=r=>((THREE.MathUtils.radToDeg(r)%360)+360)%360;
@@ -687,6 +713,34 @@ if(name==='top')phi=.02;else{theta=Math.atan2(direction[0],direction[2]);if(phi<
 const turn=Math.atan2(Math.sin(theta-current.theta),Math.cos(theta-current.theta));transition=null;spin={radius:current.radius,theta0:current.theta,theta1:current.theta+turn,phi0:current.phi,phi1:phi,start:performance.now()};invalidate(false);}
 });
 
+// ---------- Introduction: the neighbourhood, the building, then only the apartment.
+let building=null,intro=null;
+const introPose=seconds=>{const overview=presetPose('overview');return introCamera(seconds,{position:overview.p,target:overview.t},viewFit());};
+function startIntro(){
+if(intro)return;if(walkthrough?.active)walkthrough.exit(false);if(section.active){section.remove();refreshCut();}selectFurniture(null);clearSurfaceSelection();closeMenus();setView('overview',true);
+if(!building){building=createBuildingIntro({south:facadeWindows.map(w=>({at:w.at,width:w.width,sill:w.sill,height:w.height})),east:{at:Z(1049)+.215-2.18,width:1.7,sill:.92,height:2.4}});scene.add(building.group);}
+building.group.visible=true;controls.enabled=false;transition=null;spin=null;perspective.near=1;perspective.far=1600;perspective.updateProjectionMatrix();pipeline.ground.visible=false;
+document.body.classList.add('intro-playing');$('intro').hidden=false;intro={start:performance.now(),stage:introStage(0)};stepIntro(intro.start);
+}
+function stepIntro(now){
+const seconds=intro.hold??(now-intro.start)/1000,stage=intro.stage=introStage(seconds),pose=introPose(seconds);
+camera.position.fromArray(pose.position);controls.target.fromArray(pose.target);camera.lookAt(controls.target);
+building.apply(stage,seconds,daylight.lamps);const lift=building.ceilingLift(stage);for(const g of [roof,joists,lamps])g.position.y=lift;
+// Haze softens the far streets; the shadow map tightens as the town folds away.
+scene.fog.density=.0021/viewFit()*(1-stage.approach*.75)*(1-stage.sink);pipeline.setScope(12.5+105*(1-stage.clear));pipeline.ground.visible=stage.clear>.92;
+$('intro-caption').textContent=introCaption(seconds);
+// Shadows stand still while only the camera travels; they follow once the building opens.
+if(stage.split>0||!intro.shadowed){shadowsDirty=true;intro.shadowed=true;}
+if(stage.done)endIntro();
+}
+function endIntro(){
+if(!intro)return;intro=null;building.apply(introStage(INTRO_SECONDS));building.group.visible=false;for(const g of [roof,joists,lamps])g.position.y=0;
+scene.fog.density=0;pipeline.setScope(12.5);pipeline.ground.visible=true;perspective.near=.04;perspective.far=180;perspective.updateProjectionMatrix();
+controls.enabled=true;document.body.classList.remove('intro-playing');$('intro').hidden=true;setView('overview',true);try{sessionStorage.setItem('ivry-intro','seen');}catch{}invalidate();
+}
+$('intro-skip').onclick=endIntro;$('intro-replay').onclick=()=>{closeMenus();startIntro();};
+window.addEventListener('keydown',e=>{if(intro&&e.key==='Escape'){e.preventDefault();endIntro();}});
+
 // ---------- Shell: menus, segmented choices, side panel and contextual tips.
 function closeMenus(){let closed=false;document.querySelectorAll('.menu').forEach(menu=>{if(!menu.hidden){menu.hidden=true;closed=true;}});document.querySelectorAll('[data-menu]').forEach(b=>b.setAttribute('aria-expanded','false'));return closed;}
 document.querySelectorAll('[data-menu]').forEach(button=>{const menu=$(button.dataset.menu);button.onclick=()=>{const open=menu.hidden;closeMenus();if(open){menu.hidden=false;button.setAttribute('aria-expanded','true');}};});
@@ -704,4 +758,7 @@ function updateHint(){const text=walkthrough?.active?'Drag to look around · Cli
 $('hint-close').onclick=()=>{hintsOff=true;try{localStorage.setItem('ivry-hints-off','1');}catch{}updateHint();};
 
 surfaceUI();renderRecentColours();choose('wall-mode',$('wall-mode').value);setPose('stand',false);setQuality(view.quality);applyDaylight();refreshCut();updateHint();showPanel('materials',false);
+// The introduction plays once per browser tab; ?intro=1 forces it and ?intro=0 skips it.
+let introSeen=false;try{introSeen=sessionStorage.getItem('ivry-intro')==='seen';}catch{}
+if(query.get('intro')==='1'||(query.get('intro')!=='0'&&!introSeen&&!matchMedia('(prefers-reduced-motion: reduce)').matches))startIntro();
 requestAnimationFrame(frame);$('loading').hidden=true;
